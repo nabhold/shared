@@ -1,0 +1,134 @@
+# CODEOWNERS
+
+#
+
+# NABHOLD Shared Repository
+
+#
+
+# This file defines the default owners for files in this repository.
+
+# Changes affecting shared workflows, automation, security controls,
+
+# or repository governance should receive review from the appropriate
+
+# owners before merging.
+
+#
+
+# NOTE:
+
+# Replace the team names below with the actual NABHOLD GitHub team
+
+# slugs once those teams have been established.
+
+# ------------------------------------------------------------------------------
+
+# Default ownership
+
+#
+
+# All files are owned by the NABHOLD Platform Engineering team.
+
+# ------------------------------------------------------------------------------
+
+* @nabhold/platform-engineering
+
+# ------------------------------------------------------------------------------
+
+# GitHub Actions and reusable workflows
+
+#
+
+# These workflows may affect multiple repositories and therefore require
+
+# Platform Engineering review.
+
+# ------------------------------------------------------------------------------
+
+.github/workflows/ @nabhold/platform-engineering
+.github/actions/ @nabhold/platform-engineering
+
+# ------------------------------------------------------------------------------
+
+# Organisation-wide security automation
+
+#
+
+# Security-sensitive automation should receive Security team review in
+
+# addition to the platform owner.
+
+# ------------------------------------------------------------------------------
+
+.github/workflows/security/ @nabhold/platform-engineering @nabhold/security
+
+# ------------------------------------------------------------------------------
+
+# Security configuration and policies
+
+# ------------------------------------------------------------------------------
+
+security/ @nabhold/security
+
+# ------------------------------------------------------------------------------
+
+# Shared automation scripts
+
+# ------------------------------------------------------------------------------
+
+scripts/ @nabhold/platform-engineering
+
+# ------------------------------------------------------------------------------
+
+# Shared composite actions
+
+# ------------------------------------------------------------------------------
+
+actions/ @nabhold/platform-engineering
+
+# ------------------------------------------------------------------------------
+
+# Repository and workflow templates
+
+# ------------------------------------------------------------------------------
+
+templates/ @nabhold/platform-engineering
+
+# ------------------------------------------------------------------------------
+
+# Documentation
+
+#
+
+# Documentation changes remain under Platform Engineering ownership because
+
+# they define organisation-wide engineering practices.
+
+# ------------------------------------------------------------------------------
+
+docs/ @nabhold/platform-engineering
+
+# ------------------------------------------------------------------------------
+
+# Dependency and repository automation
+
+# ------------------------------------------------------------------------------
+
+.github/dependabot.yml @nabhold/platform-engineering
+
+# ------------------------------------------------------------------------------
+
+# Repository governance
+
+#
+
+# Changes to these files can alter the rules governing the repository itself.
+
+# ------------------------------------------------------------------------------
+
+CODEOWNERS @nabhold/platform-engineering
+CONTRIBUTING.md @nabhold/platform-engineering
+SECURITY.md @nabhold/platform-engineering @nabhold/security
+CHANGELOG.md @nabhold/platform-engineering
+README.md @nabhold/platform-engineering
