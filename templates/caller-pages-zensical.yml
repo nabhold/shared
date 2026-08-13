@@ -1,0 +1,61 @@
+# Copy into <repo>/.github/workflows/pages.yml
+# Adjust paths for this repository, then delete this comment block.
+#
+# Assumes: uv-managed pyproject.toml with a "docs" dependency group
+# containing the `zensical` package, and native zensical.toml
+# configuration (Zensical is the NABHOLD org default — see
+# pages-zensical.yml's own header for why a different toolchain gets its
+# own reusable workflow rather than a branch in this one).
+
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "zensical.toml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/pages.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "zensical.toml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  resolve-python-version:
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.resolve.outputs.value }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: resolve
+        uses: nabhold/shared/.github/actions/derive-value-from-yaml@v1
+        with:
+          manifest-path: config/versions.yaml   # TODO: adjust if this repo's manifest differs
+          query: ".languages.python.version"    # TODO: adjust query path if schema differs
+
+  docs:
+    needs: resolve-python-version
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: nabhold/shared/.github/workflows/pages-zensical.yml@v1
+    with:
+      python-version: ${{ needs.resolve-python-version.outputs.version }}
