@@ -1,0 +1,87 @@
+# ==============================================================================
+# NABHOLD Shared Engineering Infrastructure
+# Composite Action: Derive Value from YAML Manifest
+#
+# File: .github/actions/derive-value-from-yaml/action.yml
+#
+# PURPOSE:
+#   Extracts a single scalar value from any YAML file via an arbitrary yq
+#   expression, and exposes it as a step output. Deliberately schema-agnostic
+#   — it knows nothing about any specific manifest's shape (e.g. BAOBAB's
+#   config/versions.yaml). The caller supplies both the file path and the
+#   query, so this action is reusable by any repository with any YAML
+#   configuration, not just repositories that happen to share BAOBAB's
+#   version-manifest layout.
+#
+# WHY THIS EXISTS AS A COMPOSITE ACTION, NOT PART OF A REUSABLE WORKFLOW:
+#   A reusable workflow (workflow_call) IS an entire job — a caller cannot
+#   inject a step before or after it within the same job. Deriving a value
+#   (e.g. a Python version from a repo-specific manifest) has to happen in
+#   its own job/step sequence *before* a generic reusable workflow like
+#   pages-zensical.yml runs, so it has to be a composite action (steps
+#   within a job the caller controls), not a workflow_call. See
+#   templates/caller-pages-zensical.yml for the two-job pattern this
+#   enables: resolve-python-version (calls this action) -> docs (calls the
+#   reusable workflow, fed by the first job's output).
+#
+# SECURITY NOTE:
+#   `query` is interpolated into a shell command. This is safe under this
+#   action's intended use — `query` is always a literal string written into
+#   a workflow file by an org maintainer (not user/PR-supplied input at
+#   runtime) — but this action must never be wired to accept `query` from
+#   an untrusted source (e.g. a PR title or issue body) without revisiting
+#   this design.
+#
+# CHANGE LOG (most recent first)
+# ------------------------------------------------------------------------------
+# * Initial version. First consumer: baobab-dev's pages.yml, extracting
+#   languages.python.version from config/versions.yaml.
+# ==============================================================================
+
+name: "Derive value from YAML manifest"
+description: "Installs yq if needed and extracts a single value from a YAML file via a yq expression."
+
+inputs:
+  manifest-path:
+    description: "Path to the YAML file, relative to the repository root."
+    required: true
+  query:
+    description: "yq expression to evaluate against the manifest, e.g. '.languages.python.version'. Org-controlled — never wire this to untrusted input."
+    required: true
+
+outputs:
+  value:
+    description: "The resolved value."
+    value: ${{ steps.resolve.outputs.value }}
+
+runs:
+  using: "composite"
+  steps:
+    # yq is not guaranteed to be preinstalled on GitHub-hosted runner images
+    # long-term, and self-hosted runners in particular may not have it at
+    # all — installed conditionally so this action doesn't waste time
+    # reinstalling it on images that already carry it.
+    - name: Ensure yq is available
+      shell: bash
+      run: |
+        set -euo pipefail
+        if ! command -v yq >/dev/null 2>&1; then
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+        fi
+
+    # Fails loudly rather than emitting an empty/null output — a downstream
+    # job silently receiving an empty python-version, for example, would
+    # fail confusingly several steps later instead of right here at the
+    # actual point of the problem.
+    - id: resolve
+      shell: bash
+      run: |
+        set -euo pipefail
+        VALUE="$(yq -r '${{ inputs.query }}' '${{ inputs.manifest-path }}')"
+        if [[ -z "$VALUE" || "$VALUE" == "null" ]]; then
+          echo "::error::yq query '${{ inputs.query }}' against '${{ inputs.manifest-path }}' resolved to nothing."
+          exit 1
+        fi
+        echo "value=${VALUE}" >> "$GITHUB_OUTPUT"

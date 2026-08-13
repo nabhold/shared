@@ -1,0 +1,99 @@
+# ==============================================================================
+# NABHOLD Shared Engineering Infrastructure
+# Reusable Workflow: Greet First-Time Contributors
+#
+# File: .github/workflows/greetings.yml
+#
+# PURPOSE:
+#   Posts a welcome comment on a contributor's first issue and first pull
+#   request in a consuming repository. A thin, low-risk workflow — chosen as
+#   the first migration into this repository specifically because it has no
+#   secrets beyond the default GITHUB_TOKEN, no build/publish side effects,
+#   and a small, easily-reviewable blast radius if the migration mechanics
+#   themselves (workflow_call, permission ceilings) turn out to need
+#   adjustment before more critical pipelines (publish.yml) follow.
+#
+# CONSUMPTION:
+#   This workflow only declares `on: workflow_call` — it has no trigger of
+#   its own. GitHub does not allow a called workflow to also react to
+#   repository events directly; the calling repository must own the real
+#   trigger (`pull_request_target` / `issues`) and the elevated
+#   `issues: write` / `pull-requests: write` permissions, then invoke this
+#   workflow by reference. See templates/caller-greetings.yml in this
+#   repository for the exact caller shape.
+#
+# WHY pull_request_target (documented here, not just in the caller, since
+# it's the reason first-interaction needs write permissions at all):
+#   pull_request_target runs with the base repository's token/permissions
+#   even for a PR opened from a fork, which is required for the bot to be
+#   able to comment. This is safe here specifically because this workflow
+#   never checks out or executes the PR's own code — it only reads event
+#   metadata (author, PR/issue number) and posts a static, org-controlled
+#   comment string. Consumers must not add a checkout step to their caller
+#   workflow's `greet` job.
+#
+# VERSIONING:
+#   Tagged and consumed per VERSIONING.md — pin to the moving major tag
+#   (@v1) unless a specific historical reproduction is required.
+#
+# CHANGE LOG (most recent first)
+# ------------------------------------------------------------------------------
+# * Initial extraction from nabhold/baobab-dev's repository-local
+#   greetings.yml into shared/, made generic via issue-message/pr-message
+#   inputs so wording stays per-repo while the mechanism is centralized.
+# ==============================================================================
+
+name: Reusable — Greet First-Time Contributors
+
+on:
+  workflow_call:
+    inputs:
+      issue-message:
+        description: >
+          Comment posted on a contributor's first issue in the calling
+          repository. Required in practice (no org-wide default is safe to
+          assume across dissimilar repos), but declared optional with a
+          generic fallback so a caller that forgets to set it fails soft
+          (a slightly generic comment) rather than hard (a broken workflow).
+        type: string
+        required: false
+        default: "Thanks for opening your first issue here — welcome to NABHOLD! A maintainer will take a look shortly."
+      pr-message:
+        description: "Comment posted on a contributor's first pull request in the calling repository."
+        type: string
+        required: false
+        default: "Thanks for your first pull request here — welcome to NABHOLD! A maintainer will review it shortly."
+
+# Least-privilege default at the workflow level, per org policy — the actual
+# write access this job needs is granted explicitly on the job below, not
+# inherited from the caller's workflow-level permissions.
+permissions:
+  contents: read
+
+jobs:
+  greet:
+    name: Greet
+    runs-on: ubuntu-26.04
+
+    # issues:write / pull-requests:write are the minimum actions/first-interaction
+    # needs to post a comment. Note this permission block is a CEILING set by
+    # the calling job's own `permissions:`, not an automatic grant — the
+    # calling repository's job that does `uses: nabhold/shared/...@v1` must
+    # itself declare at least this much, or GITHUB_TOKEN here will be
+    # silently downgraded and the comment post will fail with a 403.
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      # SHA verified live via `git ls-remote --tags --refs
+      # https://github.com/actions/first-interaction.git` on 2026-08-13,
+      # per this org's action-pinning policy (every action pinned to a
+      # 40-character commit SHA, verified live rather than trusted from
+      # memory or the marketplace listing).
+      - name: Post welcome message
+        uses: actions/first-interaction@1c4688942c71f71d4f5502a26ea67c331730fa4d # v3.1.0
+        with:
+          repo-token: ${{ github.token }}
+          issue-message: ${{ inputs.issue-message }}
+          pr-message: ${{ inputs.pr-message }}

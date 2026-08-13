@@ -1,0 +1,152 @@
+# ==============================================================================
+# NABHOLD Shared Engineering Infrastructure
+# Reusable Workflow: Build & Deploy Documentation (uv + Zensical)
+#
+# File: .github/workflows/pages-zensical.yml
+#
+# PURPOSE:
+#   Builds a Zensical documentation site and deploys it to GitHub Pages.
+#   Zensical is the de facto documentation toolchain across NABHOLD as of
+#   this workflow's creation — see README.md's toolchain-per-reusable-
+#   workflow policy: a future different toolchain gets its own reusable
+#   workflow rather than a conditional branch in this one. This workflow
+#   has zero knowledge of MkDocs by design.
+#
+# TOOLCHAIN ASSUMPTIONS (the contract every caller must satisfy):
+#   - uv-managed Python project (pyproject.toml with a "docs" — or
+#     caller-named — dependency group containing the `zensical` package).
+#   - Native zensical.toml configuration. Theme overrides via
+#     [project.theme].custom_dir are supported by Zensical directly
+#     (confirmed against baobab-dev's own zensical.toml, which already
+#     sets custom_dir = "overrides") — no special handling needed here.
+#   - Build output lands wherever Zensical's own config declares as
+#     site_dir (default "site"). Zensical has NO --site-dir CLI flag
+#     (unlike `mkdocs build`), so a caller needing a non-default output
+#     path must set it in zensical.toml — the `site-dir` input below only
+#     tells THIS workflow where to find the already-built output for
+#     upload-pages-artifact, it does not influence where Zensical writes.
+#
+# PYTHON VERSION IS A CALLER RESPONSIBILITY — see
+# .github/actions/derive-value-from-yaml and
+# templates/caller-pages-zensical.yml for why.
+#
+# PERMISSIONS ARE A CEILING, NOT A GRANT — the calling job's own
+# `permissions:` bounds both jobs below (build AND deploy); a caller that
+# only grants contents:read will see deploy fail with a permissions
+# error, not silently skip.
+#
+# CHANGE LOG (most recent first)
+# ------------------------------------------------------------------------------
+# * Action pins corrected to match baobab-dev's own live-verified
+#   (2026-08-06) pins rather than an independently (and, it turned out,
+#   staler) verified set: actions/checkout -> v7.0.1, actions/configure-
+#   pages -> v6.0.0, actions/upload-pages-artifact -> v5.0.0, actions/
+#   deploy-pages -> v5.0.0. No functional change intended, just brought
+#   in line with what was already proven working.
+# * Initial version, migrated from baobab-dev's repository-local
+#   pages.yml (MkDocs-based) and re-targeted at Zensical. `--verbose` was
+#   NOT carried over — Zensical CLI support for it was unconfirmed at
+#   migration time. `--clean` was added, matching both Zensical's own
+#   documented GitHub Pages recipe and baobab-dev's own already-updated
+#   local build step.
+# ==============================================================================
+
+name: Reusable — Build & Deploy Docs (uv + Zensical)
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Exact Python version (or minor, e.g. '3.14') for uv to provision. Caller-derived — see file header."
+        type: string
+        required: true
+      working-directory:
+        description: "Directory containing pyproject.toml / the docs source, relative to the repo root."
+        type: string
+        required: false
+        default: "."
+      docs-dependency-group:
+        description: "uv dependency-group name (in pyproject.toml) to sync for the docs build."
+        type: string
+        required: false
+        default: "docs"
+      strict:
+        description: "Pass --strict to zensical build (treat warnings as build failures)."
+        type: boolean
+        required: false
+        default: true
+      site-dir:
+        description: "Build output directory. Must match zensical.toml's site_dir if the caller has customized it — this input does NOT set Zensical's output location itself, see file header."
+        type: string
+        required: false
+        default: "site"
+      fetch-depth:
+        description: "Git fetch depth for checkout. 0 = full history. Only matters if the caller's markdown_extensions/plugins need full git history (e.g. a revision-date feature) — confirm this is still true under Zensical before relying on it; the old MkDocs-plugin rationale for this default no longer applies."
+        type: number
+        required: false
+        default: 0
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Documentation
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: ${{ inputs.fetch-depth }}
+
+      # uv provisions the interpreter itself from a .python-version file —
+      # no separate actions/setup-python step, no second tool to keep in
+      # sync with pyproject.toml's requires-python. Written from the
+      # caller-supplied input rather than read from the repo directly,
+      # since not every consuming repo commits a .python-version file.
+      - name: Pin Python version for uv
+        run: echo "${{ inputs.python-version }}" > .python-version
+
+      # astral-sh/setup-uv@v6 is an ANNOTATED tag — its tag-object SHA is
+      # NOT a commit and cannot be used to pin an action. The SHA below is
+      # the PEELED commit, verified live via `git ls-remote --tags` on
+      # 2026-08-13. Flagged explicitly so a future contributor bumping
+      # this action doesn't accidentally pin the tag object instead.
+      - name: Install uv
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          enable-cache: true
+
+      - name: Synchronize project dependencies
+        run: uv sync --locked --group "${{ inputs.docs-dependency-group }}"
+
+      - name: Build documentation
+        run: |
+          uv run zensical build --clean ${{ inputs.strict && '--strict' || '' }}
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ${{ inputs.working-directory }}/${{ inputs.site-dir }}
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-26.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Deploy documentation
+        id: deploy
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
