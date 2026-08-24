@@ -360,6 +360,39 @@ index db6208d..f3fb34b 100644
  
  A mutable reference such as:
  
+diff --git a/templates/README.md b/templates/README.md
+index 22ef469..fdd5552 100644
+--- a/templates/README.md
++++ b/templates/README.md
+@@ -12,14 +12,24 @@ job-level `permissions:` elevation always live in the caller repo, not in
+   (the NABHOLD default). A repo on a different documentation toolchain
+   needs a different reusable workflow, not a modified copy of this one —
+   raise that as a new shared/ addition rather than forking this template.
++- `caller-enforce-action-pinning.yml` — CI check that fails if any
++  `uses:` reference in the consuming repo isn't pinned to a full-length
++  commit SHA. Recommended for every repo, not just this one — see
++  README.md's "Immutable Dependencies" policy.
+ 
+ Steps:
+ 
+ 1. Copy the relevant `caller-*.yml` into `<repo>/.github/workflows/<name>.yml`.
+ 2. Resolve every `TODO`.
+-3. Pin the `nabhold/shared/...@v1` reference to the version you intend to
+-   track (moving major tag `@v1`, or a specific `@vX.Y.Z` / commit SHA for
+-   extra rigor).
++3. Pin the `nabhold/shared/...@<sha>` reference to a full-length commit
++   SHA — this is required by org policy, not optional, and applies to
++   `nabhold/shared` references exactly as it does to third-party actions
++   (see README.md's "Immutable Dependencies" section). Verify the SHA
++   live against the upstream tag/branch rather than trusting what's
++   already in the template, since it may be stale by the time you copy
++   it. **As of this writing `nabhold/shared` has no tags at all** — until
++   a `v1.0.0` release is cut, the only thing to pin to is `main` HEAD;
++   re-pin once a tag exists.
+ 4. Confirm the consuming repo's Settings → Actions → General → Actions
+    permissions allows `nabhold/shared` (only relevant if that repo has an
+    explicit allow-list rather than "Allow all actions").
+\ No newline at end of file
 diff --git a/templates/caller-enforce-action-pinning.yml b/templates/caller-enforce-action-pinning.yml
 new file mode 100644
 index 0000000..60aef23
@@ -437,7 +470,7 @@ index e69de29..bf123d8 100644
 +      issue-message: "Thanks for opening your first issue here — a maintainer will take a look shortly."
 +      pr-message: "Thanks for your first pull request here — a maintainer will review it shortly."
 diff --git a/templates/caller-pages-zensical.yml b/templates/caller-pages-zensical.yml
-index f833b8b..69cdafc 100644
+index f833b8b..c01b5dd 100644
 --- a/templates/caller-pages-zensical.yml
 +++ b/templates/caller-pages-zensical.yml
 @@ -44,8 +44,15 @@ jobs:
@@ -457,7 +490,7 @@ index f833b8b..69cdafc 100644
          with:
            manifest-path: config/versions.yaml   # TODO: adjust if this repo's manifest differs
            query: ".languages.python.version"    # TODO: adjust query path if schema differs
-@@ -56,6 +63,9 @@ jobs:
+@@ -56,6 +63,17 @@ jobs:
        contents: read
        pages: write
        id-token: write
@@ -467,5 +500,15 @@ index f833b8b..69cdafc 100644
 +    # a release is cut.
 +    uses: nabhold/shared/.github/workflows/pages-zensical.yml@1f1d7e321464761e766c6d6ea57174f6a9349072 # main HEAD — no v1 tag exists yet
      with:
-       python-version: ${{ needs.resolve-python-version.outputs.version }}
+-      python-version: ${{ needs.resolve-python-version.outputs.version }}
+\ No newline at end of file
++      python-version: ${{ needs.resolve-python-version.outputs.version }}
++      # TODO: uncomment and set if this repo's docs live in a subdirectory
++      # (working-directory) and/or zensical.toml customizes site_dir
++      # (site-dir must match it exactly — Zensical has no --site-dir CLI
++      # flag, so this workflow can't infer it; see pages-zensical.yml's
++      # header for why a mismatch here silently uploads the wrong/empty
++      # path rather than failing loudly).
++      # working-directory: "docs"
++      # site-dir: "public"
 \ No newline at end of file
