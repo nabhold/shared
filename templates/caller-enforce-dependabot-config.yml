@@ -20,9 +20,8 @@ jobs:
   check:
     permissions:
       contents: read
-    # SHA is nabhold/shared's main HEAD as of 2026-08-24 (commit 1f1d7e3),
-    # the last commit before nabhold/shared's main became temporarily
-    # broken — see README.md's "Immutable Dependencies" section. Re-verify
-    # and re-pin once that's resolved upstream and/or a v1.0.0 tag is cut;
-    # nabhold/shared has no tags at all yet, so @v1 was never a valid pin.
-    uses: nabhold/shared/.github/workflows/enforce-dependabot-config.yml@1f1d7e321464761e766c6d6ea57174f6a9349072 # main HEAD pre-corruption, no v1 tag exists yet
+    # SHA is nabhold/shared's v1.0.0 tag (annotated — peeled commit, not
+    # the tag object's own SHA), verified live via
+    # `git ls-remote --tags https://github.com/nabhold/shared.git v1.0.0`
+    # on 2026-08-25.
+    uses: nabhold/shared/.github/workflows/enforce-dependabot-config.yml@ad5cdb028023cd6b9c48cd8d7e6151ef4ab0cd73 # v1.0.0

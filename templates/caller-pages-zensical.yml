@@ -44,15 +44,16 @@ jobs:
       version: ${{ steps.resolve.outputs.value }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # SHA is nabhold/shared's main HEAD, verified live via
-      # `git ls-remote https://github.com/nabhold/shared.git main` on
-      # 2026-08-24. NOT pinned to a `v1` tag: as of this writing
-      # nabhold/shared has no tags at all (`git ls-remote --tags` returns
-      # nothing), so `@v1` previously resolved to nothing and would have
-      # failed at runtime. Once a v1.0.0 release is cut, re-pin to that
-      # tag's commit and let Dependabot track it from there.
+      # SHA is nabhold/shared's v1.0.0 tag, verified live via
+      # `git ls-remote --tags https://github.com/nabhold/shared.git v1.0.0`
+      # on 2026-08-25 — v1.0.0 is an ANNOTATED tag, so this is the
+      # PEELED commit, not the tag object's own SHA (same distinction as
+      # astral-sh/setup-uv@v6 above in pages-zensical.yml). Re-verify and
+      # re-pin on each new nabhold/shared release; Dependabot should pick
+      # this up automatically going forward now that a real tag exists to
+      # track (see enforce-dependabot-config.yml).
       - id: resolve
-        uses: nabhold/shared/.github/actions/derive-value-from-yaml@1f1d7e321464761e766c6d6ea57174f6a9349072 # main HEAD — no v1 tag exists yet, see comment above
+        uses: nabhold/shared/.github/actions/derive-value-from-yaml@ad5cdb028023cd6b9c48cd8d7e6151ef4ab0cd73 # v1.0.0
         with:
           manifest-path: config/versions.yaml   # TODO: adjust if this repo's manifest differs
           query: ".languages.python.version"    # TODO: adjust query path if schema differs
@@ -63,10 +64,8 @@ jobs:
       contents: read
       pages: write
       id-token: write
-    # Same caveat as the resolve-python-version job above: pinned to
-    # nabhold/shared's main HEAD because no v1 tag exists yet. Re-pin once
-    # a release is cut.
-    uses: nabhold/shared/.github/workflows/pages-zensical.yml@1f1d7e321464761e766c6d6ea57174f6a9349072 # main HEAD — no v1 tag exists yet
+    # Same pin/rationale as resolve-python-version's step above.
+    uses: nabhold/shared/.github/workflows/pages-zensical.yml@ad5cdb028023cd6b9c48cd8d7e6151ef4ab0cd73 # v1.0.0
     with:
       python-version: ${{ needs.resolve-python-version.outputs.version }}
       # TODO: uncomment and set if this repo's docs live in a subdirectory
