@@ -1,0 +1,234 @@
+# ==============================================================================
+# NABHOLD Shared Engineering Infrastructure
+# Reusable Workflow: Create GitHub Release from Tag
+#
+# File: .github/workflows/release.yml
+#
+# PURPOSE:
+#   Creates a GitHub Release when a version tag is pushed. Release notes
+#   come from the calling repository's own CHANGELOG.md — the section
+#   whose heading matches the pushed tag's version — falling back to
+#   GitHub's auto-generated (PR-based) notes when no matching section is
+#   found, or supplementing them when both are requested. Pre-release tags
+#   (any version containing a `-`, e.g. `v0.1.0-alpha`, `v1.0.0-rc.1`) are
+#   automatically marked as a GitHub pre-release, matching the alpha/beta/rc
+#   convention documented in every consuming repo's own CHANGELOG.md (see
+#   e.g. baobab's "Pre-release Versions" section).
+#
+#   This workflow is deliberately narrow: it only creates the GitHub
+#   Release itself (tag notes, optional file attachments). It has no
+#   opinion on how or whether the calling repository builds/publishes an
+#   artifact (a container image, a package, nothing at all) — that
+#   remains entirely the caller's responsibility, same as every other
+#   reusable workflow in this repository. A repository whose release
+#   process is inseparable from a bespoke artifact pipeline (e.g.
+#   baobab-dev's publish.yml, which signs and attests a container image as
+#   part of creating its release) is not a good fit for this workflow and
+#   should keep that logic local — see CONSUMPTION below.
+#
+# WHY DRAFT-THEN-PUBLISH:
+#   Every release is created as a draft, optionally has files attached,
+#   and is only then published (draft: false). Drafts are exempt from
+#   GitHub's Immutable Releases feature, which — where enabled — locks a
+#   release's tag and assets the moment it's published; attaching a file
+#   to an already-published immutable release fails outright. This
+#   sequencing is a no-op cost where Immutable Releases isn't enabled and
+#   the fix that's already required where it is (confirmed via
+#   baobab-dev's own publish.yml, which hit exactly this failure) — so it
+#   is applied unconditionally rather than trying to detect the setting.
+#
+# WHY THIS DOESN'T BUILD/SIGN/PUBLISH AN ARTIFACT ITSELF:
+#   Reusable workflows are consumed by repositories with very different
+#   release artifacts (a container image, an SDK package, nothing at all —
+#   baobab has no artifact of its own yet). Bundling artifact-specific
+#   steps here would mean either a workflow with a dozen mutually-exclusive
+#   input branches, or forcing every consumer through the heaviest
+#   consumer's needs. A caller that already builds an artifact attaches it
+#   via the `files` input; a caller with its own multi-step
+#   build/sign/attest pipeline (see baobab-dev's publish.yml) calls this
+#   workflow for nothing and keeps its own release-creation step exactly
+#   as detailed as it needs to be.
+#
+# CONSUMPTION:
+#   This workflow only declares `on: workflow_call` — it has no trigger of
+#   its own (same constraint as every other reusable workflow in this
+#   repository). The calling repository must own the real `push: tags:`
+#   trigger and the elevated `contents: write` permission, then invoke
+#   this workflow by reference. See templates/caller-release.yml for the
+#   exact caller shape.
+#
+# VERSIONING:
+#   Tagged and consumed per VERSIONING.md — pin to the moving major tag
+#   (@v1) unless a specific historical reproduction is required.
+#
+# CHANGE LOG (most recent first)
+# ------------------------------------------------------------------------------
+# * Initial version. Extracted the "create a GitHub Release from a tag"
+#   pattern already proven in baobab-dev's publish.yml (generate_release_
+#   notes + draft-then-publish for Immutable Releases compatibility),
+#   generalized with CHANGELOG.md section extraction so a caller's own
+#   hand-written release notes are used when present.
+# ==============================================================================
+
+name: Reusable — Create GitHub Release from Tag
+
+on:
+  workflow_call:
+    inputs:
+      changelog-path:
+        description: >
+          Path to the calling repository's CHANGELOG.md, relative to the
+          repo root. Its "Keep a Changelog" style version heading — a line
+          starting with "# [<version>]" or "## [<version>]", where
+          <version> is the pushed tag with its leading "v" stripped — is
+          extracted and used as the release body. Set to an empty string
+          to skip changelog extraction entirely and rely solely on
+          generate-release-notes.
+        type: string
+        required: false
+        default: "CHANGELOG.md"
+      generate-release-notes:
+        description: >
+          Whether to also include GitHub's auto-generated (PR-based)
+          release notes. Used as the entire release body when no matching
+          changelog section is found (or changelog-path is empty);
+          appended after the changelog excerpt otherwise.
+        type: boolean
+        required: false
+        default: true
+      files:
+        description: >
+          Newline-separated list of file paths/globs to attach to the
+          release (same format as softprops/action-gh-release's own
+          `files` input). Leave empty to attach nothing.
+        type: string
+        required: false
+        default: ""
+      fetch-depth:
+        description: "Git fetch depth for checkout. Only relevant if changelog-path lives outside a shallow checkout's default depth (it never does for a file at the repo root) — exposed for consistency with this repository's other reusable workflows rather than because most callers need it."
+        type: number
+        required: false
+        default: 1
+    outputs:
+      release-id:
+        description: "The numeric ID of the created release."
+        value: ${{ jobs.release.outputs.release-id }}
+      release-url:
+        description: "The HTML URL of the created release."
+        value: ${{ jobs.release.outputs.release-url }}
+
+# Least-privilege default at the workflow level, per org policy — the actual
+# write access this job needs is granted explicitly on the job below, not
+# inherited from the caller's workflow-level permissions.
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-26.04
+
+    # contents: write is a CEILING set by the calling job's own
+    # `permissions:`, not an automatic grant — the calling repository's job
+    # that does `uses: nabhold/shared/...@v1` must itself declare at least
+    # this much, or GITHUB_TOKEN here will be silently downgraded and
+    # release creation will fail with a 403.
+    permissions:
+      contents: write
+
+    outputs:
+      release-id: ${{ steps.publish.outputs.release-id }}
+      release-url: ${{ steps.publish.outputs.release-url }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: ${{ inputs.fetch-depth }}
+
+      # Tag -> bare version, and pre-release detection. A tag containing a
+      # "-" (v0.1.0-alpha, v1.0.0-rc.1) is a pre-release by this org's own
+      # documented convention (see e.g. baobab's CHANGELOG.md "Pre-release
+      # Versions" section) — same test baobab-dev's publish.yml already
+      # uses for its own "latest" tag's `enable:` condition
+      # (!contains(github.ref, '-')), inverted here for `prerelease`.
+      - name: Determine version and pre-release status
+        id: version
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          if [[ "${TAG}" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Extracts the "# [<version>]" or "## [<version>]" section from the
+      # caller's CHANGELOG.md, if present, up to (not including) the next
+      # top-level-or-deeper "#"/"##" heading. Uses a literal prefix match
+      # (index($0, pat) == 1), not a regex, so a version string containing
+      # "." or other regex metacharacters can never be misinterpreted —
+      # every character in the heading must match exactly.
+      - name: Extract changelog section for this version
+        id: changelog
+        if: inputs.changelog-path != ''
+        run: |
+          set -euo pipefail
+          CHANGELOG_PATH="${{ inputs.changelog-path }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          OUT="release-notes-extracted.md"
+
+          if [[ ! -f "${CHANGELOG_PATH}" ]]; then
+            echo "::warning::changelog-path '${CHANGELOG_PATH}' does not exist — skipping changelog extraction."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          awk -v v1="# [${VERSION}]" -v v2="## [${VERSION}]" '
+            BEGIN { found = 0 }
+            (index($0, v1) == 1 || index($0, v2) == 1) { found = 1; print; next }
+            found && (index($0, "# ") == 1) { exit }
+            found { print }
+          ' "${CHANGELOG_PATH}" > "${OUT}"
+
+          if [[ -s "${OUT}" ]]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "path=${OUT}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::No '# [${VERSION}]' or '## [${VERSION}]' heading found in ${CHANGELOG_PATH} — falling back to generate-release-notes only."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Every release is created as a draft first — see file header "WHY
+      # DRAFT-THEN-PUBLISH". body_path resolves to an empty string when no
+      # changelog section was found — the same value this input already
+      # holds whenever a caller omits it entirely (action.yml declares no
+      # default), so softprops/action-gh-release's own "not provided"
+      # handling applies identically here; it falls back to
+      # generate_release_notes alone.
+      - name: Create GitHub Release (draft)
+        id: create
+        uses: softprops/action-gh-release@7b4da11513bf3f43f9999e90eabced41ab8bb048 # v2.2.0
+        with:
+          draft: true
+          prerelease: ${{ steps.version.outputs.prerelease }}
+          generate_release_notes: ${{ inputs.generate-release-notes }}
+          body_path: ${{ steps.changelog.outputs.found == 'true' && steps.changelog.outputs.path || '' }}
+          files: ${{ inputs.files }}
+
+      # Publishes the draft created above — the moment this runs is when a
+      # release becomes immutable on a repository with Immutable Releases
+      # enabled (see file header). `gh release edit` is used rather than a
+      # second third-party action: it ships on every GitHub-hosted runner,
+      # and this is a one-line operation.
+      - name: Publish GitHub Release
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release edit "${GITHUB_REF_NAME}" --draft=false --repo "${GITHUB_REPOSITORY}"
+          echo "release-id=${{ steps.create.outputs.id }}" >> "$GITHUB_OUTPUT"
+          echo "release-url=${{ steps.create.outputs.url }}" >> "$GITHUB_OUTPUT"

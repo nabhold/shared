@@ -1,0 +1,46 @@
+# Copy into <repo>/.github/workflows/release.yml
+# Adjust the changelog-path input and the "files" TODO below for this
+# repository, then delete this comment block.
+#
+# Assumes: a "Keep a Changelog"-style CHANGELOG.md at the repo root with
+# version headings shaped "# [<version>]" or "## [<version>]" (see
+# nabhold/shared's own CHANGELOG.md, or baobab's, for the convention this
+# matches). A repo without that heading style should set changelog-path to
+# "" and rely on generate-release-notes alone.
+#
+# NOT a fit for a repository whose release is inseparable from a bespoke
+# artifact pipeline (container build/sign/attest, package publish, etc.) —
+# see nabhold/shared/.github/workflows/release.yml's own header. Keep that
+# kind of release-creation step local to the repo instead of adopting this.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+      - "v*.*.*-*"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    # SHA is nabhold/shared's v1.0.0 tag (annotated — peeled commit, not
+    # the tag object's own SHA), verified live via
+    # `git ls-remote --tags https://github.com/nabhold/shared.git v1.0.0`
+    # on 2026-08-25. Re-verify and re-pin once a release containing this
+    # workflow is actually cut — v1.0.0 predates it, so this placeholder
+    # SHA must be updated to the commit that first introduces
+    # .github/workflows/release.yml before this caller will resolve.
+    uses: nabhold/shared/.github/workflows/release.yml@ad5cdb028023cd6b9c48cd8d7e6151ef4ab0cd73 # v1.0.0
+    with:
+      changelog-path: "CHANGELOG.md"
+      # TODO: set to true only once this repo actually publishes something
+      # (a package, a container image, a doc site with a version-pinned
+      # URL) that belongs in the release notes as a download/reference —
+      # leave "" (no files) for a repo whose release is notes-only.
+      # files: |
+      #   dist/*.whl
