@@ -1,0 +1,35 @@
+# Copy into <repo>/.github/workflows/greetings.yml
+# Adjust issue-message/pr-message for this repository, then delete this
+# comment block.
+#
+# Do NOT add a checkout step to the `greet` job below. This workflow uses
+# pull_request_target specifically so the bot can comment using the base
+# repository's token even on PRs from forks — see
+# nabhold/shared/.github/workflows/greetings.yml's header for why that's
+# safe only as long as the PR's own code is never checked out or executed.
+
+name: Greet First-Time Contributors
+
+on:
+  pull_request_target:
+    types: [opened]
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  greet:
+    permissions:
+      issues: write
+      pull-requests: write
+    # SHA is nabhold/shared's main HEAD, verified live via
+    # `git ls-remote https://github.com/nabhold/shared.git main` on
+    # 2026-08-24. NOT pinned to a `v1` tag: as of this writing
+    # nabhold/shared has no tags at all, so `@v1` resolves to nothing.
+    # Once a v1.0.0 release is cut, re-pin to that tag's commit.
+    uses: nabhold/shared/.github/workflows/greetings.yml@1f1d7e321464761e766c6d6ea57174f6a9349072 # main HEAD — no v1 tag exists yet
+    with:
+      issue-message: "Thanks for opening your first issue here — a maintainer will take a look shortly."
+      pr-message: "Thanks for your first pull request here — a maintainer will review it shortly."

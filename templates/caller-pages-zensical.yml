@@ -44,8 +44,15 @@ jobs:
       version: ${{ steps.resolve.outputs.value }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # SHA is nabhold/shared's main HEAD, verified live via
+      # `git ls-remote https://github.com/nabhold/shared.git main` on
+      # 2026-08-24. NOT pinned to a `v1` tag: as of this writing
+      # nabhold/shared has no tags at all (`git ls-remote --tags` returns
+      # nothing), so `@v1` previously resolved to nothing and would have
+      # failed at runtime. Once a v1.0.0 release is cut, re-pin to that
+      # tag's commit and let Dependabot track it from there.
       - id: resolve
-        uses: nabhold/shared/.github/actions/derive-value-from-yaml@v1
+        uses: nabhold/shared/.github/actions/derive-value-from-yaml@1f1d7e321464761e766c6d6ea57174f6a9349072 # main HEAD — no v1 tag exists yet, see comment above
         with:
           manifest-path: config/versions.yaml   # TODO: adjust if this repo's manifest differs
           query: ".languages.python.version"    # TODO: adjust query path if schema differs
@@ -56,6 +63,17 @@ jobs:
       contents: read
       pages: write
       id-token: write
-    uses: nabhold/shared/.github/workflows/pages-zensical.yml@v1
+    # Same caveat as the resolve-python-version job above: pinned to
+    # nabhold/shared's main HEAD because no v1 tag exists yet. Re-pin once
+    # a release is cut.
+    uses: nabhold/shared/.github/workflows/pages-zensical.yml@1f1d7e321464761e766c6d6ea57174f6a9349072 # main HEAD — no v1 tag exists yet
     with:
       python-version: ${{ needs.resolve-python-version.outputs.version }}
+      # TODO: uncomment and set if this repo's docs live in a subdirectory
+      # (working-directory) and/or zensical.toml customizes site_dir
+      # (site-dir must match it exactly — Zensical has no --site-dir CLI
+      # flag, so this workflow can't infer it; see pages-zensical.yml's
+      # header for why a mismatch here silently uploads the wrong/empty
+      # path rather than failing loudly).
+      # working-directory: "docs"
+      # site-dir: "public"

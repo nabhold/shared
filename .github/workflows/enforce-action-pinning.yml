@@ -1,514 +1,120 @@
-diff --git a/.github/workflows/enforce-action-pinning.yml b/.github/workflows/enforce-action-pinning.yml
-new file mode 100644
-index 0000000..423ff5a
---- /dev/null
-+++ b/.github/workflows/enforce-action-pinning.yml
-@@ -0,0 +1,120 @@
-+# ==============================================================================
-+# NABHOLD Shared Engineering Infrastructure
-+# Reusable Workflow: Enforce Action Pinning
-+#
-+# File: .github/workflows/enforce-action-pinning.yml
-+#
-+# PURPOSE:
-+#   Fails CI if any `uses:` reference in the calling repository's
-+#   .github/workflows/**/*.yml or .github/actions/**/action.yml is not
-+#   pinned to a full 40-character commit SHA. This is the org-wide
-+#   action-pinning policy (README.md > "Immutable Dependencies") expressed
-+#   as an automated check, applying to every action reference — third-party
-+#   actions AND nabhold/shared's own reusable workflows/composite actions
-+#   consumed via `uses: nabhold/shared/...@<sha>`. A floating tag (`@v4`,
-+#   `@v1`), a branch name, or `@main` all fail this check; only a
-+#   40-character hex commit SHA passes.
-+#
-+# WHAT THIS DOES NOT CHECK:
-+#   - Docker-backed actions (`uses: docker://...`) are flagged separately
-+#     if not pinned by @sha256: digest, but digest pinning is a distinct
-+#     mechanism from commit-SHA pinning and isn't the primary target here.
-+#   - Whether the pinned SHA is itself trustworthy/verified against
-+#     upstream — that's a human review responsibility at PR time, this
-+#     check only confirms the *form* of the reference is immutable.
-+#   - Local actions (`uses: ./path/to/action`) are skipped; they have no
-+#     ref to pin, they're pinned by definition (same commit as the caller).
-+#
-+# DEPENDENCY-FREE BY DESIGN:
-+#   Implemented in plain bash rather than a third-party pinning-linter
-+#   action, specifically so this enforcement mechanism doesn't itself
-+#   introduce another action reference that needs to be kept pinned and
-+#   updated.
-+#
-+# CHANGE LOG (most recent first)
-+# ------------------------------------------------------------------------------
-+# * Initial version.
-+# ==============================================================================
-+
-+name: Reusable — Enforce Action Pinning
-+
-+on:
-+  workflow_call:
-+    inputs:
-+      path:
-+        description: "Root directory to scan for .github/workflows and .github/actions, relative to the repo root."
-+        type: string
-+        required: false
-+        default: "."
-+
-+permissions:
-+  contents: read
-+
-+jobs:
-+  check:
-+    name: Check action references are SHA-pinned
-+    runs-on: ubuntu-26.04
-+    steps:
-+      - name: Checkout source
-+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-+
-+      - name: Scan for unpinned action references
-+        working-directory: ${{ inputs.path }}
-+        shell: bash
-+        run: |
-+          set -euo pipefail
-+
-+          violations=0
-+
-+          while IFS= read -r -d '' file; do
-+            while IFS= read -r grepline; do
-+              lineno="${grepline%%:*}"
-+              content="${grepline#*:}"
-+
-+              # Pull the token immediately after 'uses:', stripping quotes.
-+              val="$(printf '%s' "$content" \
-+                | sed -E 's/^[^:]*uses:[[:space:]]*//' \
-+                | sed -E "s/[\"']//g" \
-+                | awk '{print $1}')"
-+
-+              [[ -z "$val" ]] && continue
-+
-+              # Local actions have no ref to pin — same commit as the caller.
-+              if [[ "$val" == ./* || "$val" == ../* ]]; then
-+                continue
-+              fi
-+
-+              # Docker actions pin by digest, not commit SHA.
-+              if [[ "$val" == docker://* ]]; then
-+                if [[ "$val" != *@sha256:* ]]; then
-+                  echo "::error file=${file},line=${lineno}::Docker action not pinned by digest (expected @sha256:...): ${val}"
-+                  violations=$((violations + 1))
-+                fi
-+                continue
-+              fi
-+
-+              if [[ "$val" != *@* ]]; then
-+                echo "::error file=${file},line=${lineno}::Action has no ref at all (expected @<40-char-commit-sha>): ${val}"
-+                violations=$((violations + 1))
-+                continue
-+              fi
-+
-+              ref="${val##*@}"
-+              if [[ ! "$ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
-+                echo "::error file=${file},line=${lineno}::Action not pinned to a full-length commit SHA: ${val}"
-+                violations=$((violations + 1))
-+              fi
-+            # Anchored so a comment merely *mentioning* `uses:` in prose
-+            # (e.g. a header note about the calling repository's own job)
-+            # never matches — only an actual YAML `uses:` key does.
-+            done < <(grep -nE '^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*' "$file" || true)
-+          done < <(find .github -type f \( -name "*.yml" -o -name "*.yaml" \) -print0 2>/dev/null)
-+
-+          if [[ $violations -gt 0 ]]; then
-+            echo ""
-+            echo "Found ${violations} action reference(s) not pinned to a full-length commit SHA."
-+            echo "See: https://github.com/nabhold/shared/blob/main/README.md#immutable-dependencies"
-+            exit 1
-+          fi
-+
-+          echo "All action references are pinned to full-length commit SHAs."
-diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
-index 9ac548c..6bcb0db 100644
---- a/CONTRIBUTING.md
-+++ b/CONTRIBUTING.md
-@@ -58,7 +58,9 @@ Contributions should:
- * minimise secrets;
- * avoid unnecessary write access;
- * use OIDC where appropriate;
--* pin third-party actions;
-+* pin all actions to full-length commit SHAs — third-party actions AND
-+  `nabhold/shared`'s own reusable workflows/composite actions when
-+  consumed from another repository;
- * validate untrusted inputs;
- * avoid exposing credentials to untrusted code;
- * avoid unnecessary network access.
-@@ -246,9 +248,12 @@ Avoid hard-coding values that consumers reasonably need to configure.
- 
- # 8. GitHub Actions Security
- 
--All third-party GitHub Actions must comply with NABHOLD's action-pinning policy.
-+Every GitHub Action reference must comply with NABHOLD's action-pinning
-+policy — this is organisation-wide and has no third-party carve-out. It
-+applies equally to third-party actions and to `uses: nabhold/shared/...`
-+references from consuming repositories.
- 
--Where repository policy requires immutable references, use a complete 40-character commit SHA.
-+Use a complete 40-character commit SHA for every `uses:` reference.
- 
- Prefer:
- 
-@@ -256,19 +261,35 @@ Prefer:
- uses: actions/checkout@<full-commit-sha> # v4.x.x
- ```
- 
-+and
-+
-+```yaml
-+uses: nabhold/shared/.github/workflows/python-ci.yml@<full-commit-sha> # v1.x.x
-+```
-+
- over:
- 
- ```yaml
- uses: actions/checkout@v4
- ```
- 
-+```yaml
-+uses: nabhold/shared/.github/workflows/python-ci.yml@v1
-+```
-+
- and never use floating references such as:
- 
- ```yaml
- uses: actions/checkout@main
- ```
- 
--The release/version should be retained in a comment so maintainers can identify the human-readable release corresponding to the immutable SHA.
-+The release/version should be retained in a comment so maintainers can
-+identify the human-readable release corresponding to the immutable SHA.
-+
-+This is enforced automatically, not just by review — see
-+`.github/workflows/enforce-action-pinning.yml` and
-+`templates/caller-enforce-action-pinning.yml` for the reusable CI check
-+consuming repositories can adopt.
- 
- ---
- 
-diff --git a/README.md b/README.md
-index 1454055..7be875f 100644
---- a/README.md
-+++ b/README.md
-@@ -193,7 +193,7 @@ Example:
- ```yaml
- jobs:
-   ci:
--    uses: nabhold/shared/.github/workflows/python-ci.yml@v1
-+    uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
- ```
- 
- ---
-@@ -322,7 +322,13 @@ should be preferred over broad permissions unless additional access is demonstra
- 
- ## Immutable Dependencies
- 
--GitHub Actions should be pinned to full-length commit SHAs wherever organisation policy requires immutable action references.
-+GitHub Actions must be pinned to full-length commit SHAs. This is an
-+organisation-wide requirement and applies to every `uses:` reference without
-+exception — third-party actions (`actions/checkout`), and **nabhold/shared's
-+own reusable workflows and composite actions**, wherever they're consumed
-+from another repository (`uses: nabhold/shared/...@<sha>`). A floating tag,
-+a branch name, or `@main` are all disallowed as the checked-in reference,
-+regardless of source.
- 
- Avoid:
- 
-@@ -330,13 +336,30 @@ Avoid:
- uses: actions/checkout@v4
- ```
- 
-+```yaml
-+uses: nabhold/shared/.github/workflows/python-ci.yml@v1
-+```
-+
- Prefer:
- 
- ```yaml
--uses: actions/checkout@<40-character-commit-sha>
-+uses: actions/checkout@<40-character-commit-sha> # v4.x.x
-+```
-+
-+```yaml
-+uses: nabhold/shared/.github/workflows/python-ci.yml@<40-character-commit-sha> # v1.x.x
- ```
- 
--with the release version documented in a comment.
-+with the release version (or, if no tag exists yet for `nabhold/shared`,
-+"main HEAD" and the verification date) documented in a comment. Verify the
-+SHA live against the upstream tag rather than trusting a marketplace
-+listing or a previous PR — see `templates/caller-*.yml` for examples of
-+this comment style in practice.
-+
-+A repository can enforce this automatically in CI rather than relying on
-+review alone — see
-+[`enforce-action-pinning.yml`](.github/workflows/enforce-action-pinning.yml)
-+and `templates/caller-enforce-action-pinning.yml`.
- 
- This provides both:
- 
-@@ -369,13 +392,16 @@ Changes must therefore be treated with the same care as changes to a public soft
- 
- Reusable workflows and actions should be versioned.
- 
--Consumers should preferably reference a stable major version:
-+Consumers should preferably reference a stable major release line — but,
-+per the [Immutable Dependencies](#immutable-dependencies) policy, pinned to
-+that release's commit SHA rather than the floating tag:
- 
- ```yaml
--uses: nabhold/shared/.github/workflows/python-ci.yml@v1
-+uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
- ```
- 
--while major-version branches/tags are maintained deliberately.
-+while major-version branches/tags are maintained deliberately as the
-+human-readable label for that SHA.
- 
- Breaking changes should result in a new major version.
- 
-@@ -423,15 +449,20 @@ Examples:
- * documentation correction;
- * security fix that does not change the interface.
- 
--For reusable workflows, consumers may generally pin to a major release:
-+For reusable workflows, major-version tags (`v1`, `v2`, ...) are still cut
-+and maintained, and remain the human-readable way to talk about a release
-+line — but per the [Immutable Dependencies](#immutable-dependencies) policy,
-+the reference actually checked into a caller's workflow file must resolve
-+that tag to its full-length commit SHA at the time of pinning:
- 
--```text
--@v1
-+```yaml
-+uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
- ```
- 
--while the organisation maintains the corresponding release line.
--
--Repositories requiring maximum reproducibility may pin to a specific immutable commit.
-+not the floating tag itself. Consumers re-pin (bump the SHA and comment)
-+to pick up new patch/minor releases within the same major line; Dependabot
-+(configured in this repository, see `.github/dependabot.yml`) opens these
-+bump PRs automatically once a tag exists to track.
- 
- ---
- 
-@@ -571,7 +602,7 @@ on:
- 
- jobs:
-   ci:
--    uses: nabhold/shared/.github/workflows/python-ci.yml@v1
-+    uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
- ```
- 
- If inputs are required:
-@@ -579,7 +610,7 @@ If inputs are required:
- ```yaml
- jobs:
-   ci:
--    uses: nabhold/shared/.github/workflows/python-ci.yml@v1
-+    uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
-     with:
-       python-version: "3.13"
-       test-command: "pytest"
-diff --git a/SECURITY.md b/SECURITY.md
-index db6208d..f3fb34b 100644
---- a/SECURITY.md
-+++ b/SECURITY.md
-@@ -36,7 +36,10 @@ Reusable components should provide safe defaults rather than requiring every con
- 
- ### Immutable Dependencies
- 
--Third-party GitHub Actions should be pinned to full-length commit SHAs where required by NABHOLD policy.
-+Every GitHub Action reference must be pinned to a full-length commit SHA —
-+NABHOLD policy applies this organisation-wide, with no exception for
-+`nabhold/shared`'s own reusable workflows/actions when consumed by another
-+repository.
- 
- ### No Embedded Credentials
- 
-@@ -357,7 +360,10 @@ unless there is a documented and unavoidable requirement.
- 
- ## Pin Actions
- 
--Third-party actions should be referenced using immutable full-length commit SHAs where required by organisation policy.
-+All actions — third-party and `nabhold/shared`'s own reusable
-+workflows/composite actions alike — must be referenced using immutable
-+full-length commit SHAs. This is an organisation-wide requirement, not a
-+per-repository option.
- 
- Prefer:
- 
-@@ -466,7 +472,13 @@ Avoid introducing dependencies simply because they make a small task marginally
- 
- # 15. Action Pinning
- 
--Action pinning is especially important for this repository because shared workflows can propagate a compromised dependency to multiple consumers.
-+Action pinning is especially important for this repository because shared
-+workflows can propagate a compromised dependency to multiple consumers —
-+and because this repository's own `nabhold/shared/...@<ref>` references,
-+consumed by every repo in the org, are themselves subject to the same
-+requirement. There is no third-party-only carve-out: a floating `@v1` on
-+a `nabhold/shared` reference is exactly as unpinned as a floating `@v4` on
-+a third-party action.
- 
- A mutable reference such as:
- 
-diff --git a/templates/README.md b/templates/README.md
-index 22ef469..fdd5552 100644
---- a/templates/README.md
-+++ b/templates/README.md
-@@ -12,14 +12,24 @@ job-level `permissions:` elevation always live in the caller repo, not in
-   (the NABHOLD default). A repo on a different documentation toolchain
-   needs a different reusable workflow, not a modified copy of this one —
-   raise that as a new shared/ addition rather than forking this template.
-+- `caller-enforce-action-pinning.yml` — CI check that fails if any
-+  `uses:` reference in the consuming repo isn't pinned to a full-length
-+  commit SHA. Recommended for every repo, not just this one — see
-+  README.md's "Immutable Dependencies" policy.
- 
- Steps:
- 
- 1. Copy the relevant `caller-*.yml` into `<repo>/.github/workflows/<name>.yml`.
- 2. Resolve every `TODO`.
--3. Pin the `nabhold/shared/...@v1` reference to the version you intend to
--   track (moving major tag `@v1`, or a specific `@vX.Y.Z` / commit SHA for
--   extra rigor).
-+3. Pin the `nabhold/shared/...@<sha>` reference to a full-length commit
-+   SHA — this is required by org policy, not optional, and applies to
-+   `nabhold/shared` references exactly as it does to third-party actions
-+   (see README.md's "Immutable Dependencies" section). Verify the SHA
-+   live against the upstream tag/branch rather than trusting what's
-+   already in the template, since it may be stale by the time you copy
-+   it. **As of this writing `nabhold/shared` has no tags at all** — until
-+   a `v1.0.0` release is cut, the only thing to pin to is `main` HEAD;
-+   re-pin once a tag exists.
- 4. Confirm the consuming repo's Settings → Actions → General → Actions
-    permissions allows `nabhold/shared` (only relevant if that repo has an
-    explicit allow-list rather than "Allow all actions").
-\ No newline at end of file
-diff --git a/templates/caller-enforce-action-pinning.yml b/templates/caller-enforce-action-pinning.yml
-new file mode 100644
-index 0000000..60aef23
---- /dev/null
-+++ b/templates/caller-enforce-action-pinning.yml
-@@ -0,0 +1,30 @@
-+# Copy into <repo>/.github/workflows/enforce-action-pinning.yml
-+# No adjustments usually needed — delete this comment block once copied.
-+
-+name: Enforce Action Pinning
-+
-+on:
-+  push:
-+    branches: [main]
-+    paths:
-+      - ".github/workflows/**"
-+      - ".github/actions/**"
-+  pull_request:
-+    paths:
-+      - ".github/workflows/**"
-+      - ".github/actions/**"
-+  workflow_dispatch:
-+
-+permissions:
-+  contents: read
-+
-+jobs:
-+  check:
-+    permissions:
-+      contents: read
-+    # SHA is nabhold/shared's main HEAD, verified live via
-+    # `git ls-remote https://github.com/nabhold/shared.git main` on
-+    # 2026-08-24. NOT pinned to a `v1` tag: as of this writing
-+    # nabhold/shared has no tags at all, so `@v1` resolves to nothing.
-+    # Once a v1.0.0 release is cut, re-pin to that tag's commit.
-+    uses: nabhold/shared/.github/workflows/enforce-action-pinning.yml@1f1d7e321464761e766c6d6ea57174f6a9349072 # main HEAD — no v1 tag exists yet
-diff --git a/templates/caller-greetings.yml b/templates/caller-greetings.yml
-index e69de29..bf123d8 100644
---- a/templates/caller-greetings.yml
-+++ b/templates/caller-greetings.yml
-@@ -0,0 +1,35 @@
-+# Copy into <repo>/.github/workflows/greetings.yml
-+# Adjust issue-message/pr-message for this repository, then delete this
-+# comment block.
-+#
-+# Do NOT add a checkout step to the `greet` job below. This workflow uses
-+# pull_request_target specifically so the bot can comment using the base
-+# repository's token even on PRs from forks — see
-+# nabhold/shared/.github/workflows/greetings.yml's header for why that's
-+# safe only as long as the PR's own code is never checked out or executed.
-+
-+name: Greet First-Time Contributors
-+
-+on:
-+  pull_request_target:
-+    types: [opened]
-+  issues:
-+    types: [opened]
-+
-+permissions:
-+  contents: read
-+
-+jobs:
-+  greet:
-+    permissions:
-+      issues: write
-+      pull-requests: write
-+    # SHA is nabhold/shared's main HEAD, verified live via
-+    # `git ls-remote https://github.com/nabhold/shared.git main` on
-+    # 2026-08-24. NOT pinned to a `v1` tag: as of this writing
-+    # nabhold/shared has no tags at all, so `@v1` resolves to nothing.
-+    # Once a v1.0.0 release is cut, re-pin to that tag's commit.
-+    uses: nabhold/shared/.github/workflows/greetings.yml@1f1d7e321464761e766c6d6ea57174f6a9349072 # main HEAD — no v1 tag exists yet
-+    with:
-+      issue-message: "Thanks for opening your first issue here — a maintainer will take a look shortly."
-+      pr-message: "Thanks for your first pull request here — a maintainer will review it shortly."
-diff --git a/templates/caller-pages-zensical.yml b/templates/caller-pages-zensical.yml
-index f833b8b..c01b5dd 100644
---- a/templates/caller-pages-zensical.yml
-+++ b/templates/caller-pages-zensical.yml
-@@ -44,8 +44,15 @@ jobs:
-       version: ${{ steps.resolve.outputs.value }}
-     steps:
-       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-+      # SHA is nabhold/shared's main HEAD, verified live via
-+      # `git ls-remote https://github.com/nabhold/shared.git main` on
-+      # 2026-08-24. NOT pinned to a `v1` tag: as of this writing
-+      # nabhold/shared has no tags at all (`git ls-remote --tags` returns
-+      # nothing), so `@v1` previously resolved to nothing and would have
-+      # failed at runtime. Once a v1.0.0 release is cut, re-pin to that
-+      # tag's commit and let Dependabot track it from there.
-       - id: resolve
--        uses: nabhold/shared/.github/actions/derive-value-from-yaml@v1
-+        uses: nabhold/shared/.github/actions/derive-value-from-yaml@1f1d7e321464761e766c6d6ea57174f6a9349072 # main HEAD — no v1 tag exists yet, see comment above
-         with:
-           manifest-path: config/versions.yaml   # TODO: adjust if this repo's manifest differs
-           query: ".languages.python.version"    # TODO: adjust query path if schema differs
-@@ -56,6 +63,17 @@ jobs:
-       contents: read
-       pages: write
-       id-token: write
--    uses: nabhold/shared/.github/workflows/pages-zensical.yml@v1
-+    # Same caveat as the resolve-python-version job above: pinned to
-+    # nabhold/shared's main HEAD because no v1 tag exists yet. Re-pin once
-+    # a release is cut.
-+    uses: nabhold/shared/.github/workflows/pages-zensical.yml@1f1d7e321464761e766c6d6ea57174f6a9349072 # main HEAD — no v1 tag exists yet
-     with:
--      python-version: ${{ needs.resolve-python-version.outputs.version }}
-\ No newline at end of file
-+      python-version: ${{ needs.resolve-python-version.outputs.version }}
-+      # TODO: uncomment and set if this repo's docs live in a subdirectory
-+      # (working-directory) and/or zensical.toml customizes site_dir
-+      # (site-dir must match it exactly — Zensical has no --site-dir CLI
-+      # flag, so this workflow can't infer it; see pages-zensical.yml's
-+      # header for why a mismatch here silently uploads the wrong/empty
-+      # path rather than failing loudly).
-+      # working-directory: "docs"
-+      # site-dir: "public"
-\ No newline at end of file
+# ==============================================================================
+# NABHOLD Shared Engineering Infrastructure
+# Reusable Workflow: Enforce Action Pinning
+#
+# File: .github/workflows/enforce-action-pinning.yml
+#
+# PURPOSE:
+#   Fails CI if any `uses:` reference in the calling repository's
+#   .github/workflows/**/*.yml or .github/actions/**/action.yml is not
+#   pinned to a full 40-character commit SHA. This is the org-wide
+#   action-pinning policy (README.md > "Immutable Dependencies") expressed
+#   as an automated check, applying to every action reference — third-party
+#   actions AND nabhold/shared's own reusable workflows/composite actions
+#   consumed via `uses: nabhold/shared/...@<sha>`. A floating tag (`@v4`,
+#   `@v1`), a branch name, or `@main` all fail this check; only a
+#   40-character hex commit SHA passes.
+#
+# WHAT THIS DOES NOT CHECK:
+#   - Docker-backed actions (`uses: docker://...`) are flagged separately
+#     if not pinned by @sha256: digest, but digest pinning is a distinct
+#     mechanism from commit-SHA pinning and isn't the primary target here.
+#   - Whether the pinned SHA is itself trustworthy/verified against
+#     upstream — that's a human review responsibility at PR time, this
+#     check only confirms the *form* of the reference is immutable.
+#   - Local actions (`uses: ./path/to/action`) are skipped; they have no
+#     ref to pin, they're pinned by definition (same commit as the caller).
+#
+# DEPENDENCY-FREE BY DESIGN:
+#   Implemented in plain bash rather than a third-party pinning-linter
+#   action, specifically so this enforcement mechanism doesn't itself
+#   introduce another action reference that needs to be kept pinned and
+#   updated.
+#
+# CHANGE LOG (most recent first)
+# ------------------------------------------------------------------------------
+# * Initial version.
+# ==============================================================================
+
+name: Reusable — Enforce Action Pinning
+
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: "Root directory to scan for .github/workflows and .github/actions, relative to the repo root."
+        type: string
+        required: false
+        default: "."
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check action references are SHA-pinned
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Scan for unpinned action references
+        working-directory: ${{ inputs.path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          violations=0
+
+          while IFS= read -r -d '' file; do
+            while IFS= read -r grepline; do
+              lineno="${grepline%%:*}"
+              content="${grepline#*:}"
+
+              # Pull the token immediately after 'uses:', stripping quotes.
+              val="$(printf '%s' "$content" \
+                | sed -E 's/^[^:]*uses:[[:space:]]*//' \
+                | sed -E "s/[\"']//g" \
+                | awk '{print $1}')"
+
+              [[ -z "$val" ]] && continue
+
+              # Local actions have no ref to pin — same commit as the caller.
+              if [[ "$val" == ./* || "$val" == ../* ]]; then
+                continue
+              fi
+
+              # Docker actions pin by digest, not commit SHA.
+              if [[ "$val" == docker://* ]]; then
+                if [[ "$val" != *@sha256:* ]]; then
+                  echo "::error file=${file},line=${lineno}::Docker action not pinned by digest (expected @sha256:...): ${val}"
+                  violations=$((violations + 1))
+                fi
+                continue
+              fi
+
+              if [[ "$val" != *@* ]]; then
+                echo "::error file=${file},line=${lineno}::Action has no ref at all (expected @<40-char-commit-sha>): ${val}"
+                violations=$((violations + 1))
+                continue
+              fi
+
+              ref="${val##*@}"
+              if [[ ! "$ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
+                echo "::error file=${file},line=${lineno}::Action not pinned to a full-length commit SHA: ${val}"
+                violations=$((violations + 1))
+              fi
+            # Anchored so a comment merely *mentioning* `uses:` in prose
+            # (e.g. a header note about the calling repository's own job)
+            # never matches — only an actual YAML `uses:` key does.
+            done < <(grep -nE '^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*' "$file" || true)
+          done < <(find .github -type f \( -name "*.yml" -o -name "*.yaml" \) -print0 2>/dev/null)
+
+          if [[ $violations -gt 0 ]]; then
+            echo ""
+            echo "Found ${violations} action reference(s) not pinned to a full-length commit SHA."
+            echo "See: https://github.com/nabhold/shared/blob/main/README.md#immutable-dependencies"
+            exit 1
+          fi
+
+          echo "All action references are pinned to full-length commit SHAs."

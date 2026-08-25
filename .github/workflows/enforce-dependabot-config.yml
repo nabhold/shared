@@ -1,0 +1,173 @@
+# ==============================================================================
+# NABHOLD Shared Engineering Infrastructure
+# Reusable Workflow: Enforce Dependabot Config
+#
+# File: .github/workflows/enforce-dependabot-config.yml
+#
+# PURPOSE:
+#   Dependabot configuration cannot be centralized the way reusable
+#   workflows/actions can — .github/dependabot.yml is read directly by
+#   GitHub's Dependabot service at that literal path in each repository;
+#   there is no `workflow_call`-equivalent import mechanism for it, and no
+#   `uses:` syntax a repo's config can reference to pull in another repo's
+#   config. templates/dependabot.yml is the copy-paste starting point for
+#   that reason. This workflow is the other half: since consumers copy
+#   once and can drift afterwards (hand-edited, merged from a stale
+#   branch, etc.), this checks that a repo's actual dependabot.yml still
+#   satisfies the org's structural requirements, without dictating the
+#   exact values (schedule day/time/timezone, label names) that
+#   legitimately vary per team.
+#
+# WHAT COUNTS AS A VIOLATION (structural, not stylistic):
+#   - .github/dependabot.yml missing entirely, or not valid YAML.
+#   - Top-level `version` is not exactly 2.
+#   - `updates` missing, empty, or not a list.
+#   - No entry present for each ecosystem listed in the `required-
+#     ecosystems` input (default: just "github-actions", since that's the
+#     one directly tied to this org's action-pinning/Dependabot-bump
+#     workflow; a repo tracking pip/npm/etc. isn't required to, but if it
+#     does, that entry is held to the same structural bar below).
+#   - Any update entry missing: directory, schedule.interval,
+#     open-pull-requests-limit, a non-empty labels list, or
+#     commit-message.prefix.
+#
+# WHAT THIS DELIBERATELY DOES NOT CHECK:
+#   - Exact schedule cadence/day/time/timezone — team-specific, not a
+#     compliance question.
+#   - Exact label strings or commit-message prefix text — as long as
+#     they're present and non-empty, wording is a team choice.
+#   - target-branch — not every repo's default branch is `main`.
+#
+# CHANGE LOG (most recent first)
+# ------------------------------------------------------------------------------
+# * Initial version.
+# ==============================================================================
+
+name: Reusable — Enforce Dependabot Config
+
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: "Root directory containing .github/dependabot.yml, relative to the repo root."
+        type: string
+        required: false
+        default: "."
+      required-ecosystems:
+        description: "Comma-separated package-ecosystem values that must each appear at least once in updates."
+        type: string
+        required: false
+        default: "github-actions"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check dependabot.yml conforms to org policy
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install PyYAML
+        # Not every runner image is guaranteed to ship PyYAML for the
+        # system python3, so install explicitly rather than assume — a
+        # plain `pip install`, not a third-party action, keeping with
+        # this repository's policy of not introducing another action
+        # reference just to run a governance check.
+        #
+        # --break-system-packages is required on Ubuntu 24.04+ runner
+        # images: pip 23+ refuses to write into the system-managed
+        # environment (PEP 668) without it. Confirmed this is a live
+        # issue on GitHub-hosted runners, not just a local quirk — see
+        # https://github.com/actions/runner-images/issues/10781. Safe
+        # here specifically because the runner is ephemeral and discarded
+        # after the job; there's no persistent system Python to damage.
+        run: python3 -m pip install --break-system-packages --quiet --disable-pip-version-check pyyaml
+
+      - name: Validate dependabot.yml
+        working-directory: ${{ inputs.path }}
+        shell: python3 {0}
+        env:
+          REQUIRED_ECOSYSTEMS: ${{ inputs.required-ecosystems }}
+        run: |
+          import os
+          import sys
+
+          import yaml
+
+          CONFIG_PATH = ".github/dependabot.yml"
+          required_ecosystems = [
+              e.strip() for e in os.environ["REQUIRED_ECOSYSTEMS"].split(",") if e.strip()
+          ]
+
+          violations = []
+
+          if not os.path.isfile(CONFIG_PATH):
+              print(f"::error file={CONFIG_PATH}::File does not exist.")
+              sys.exit(1)
+
+          with open(CONFIG_PATH) as f:
+              try:
+                  data = yaml.safe_load(f)
+              except yaml.YAMLError as e:
+                  print(f"::error file={CONFIG_PATH}::Not valid YAML: {e}")
+                  sys.exit(1)
+
+          if not isinstance(data, dict):
+              print(f"::error file={CONFIG_PATH}::Top-level content is not a mapping.")
+              sys.exit(1)
+
+          if data.get("version") != 2:
+              violations.append(f"top-level 'version' must be exactly 2, got: {data.get('version')!r}")
+
+          updates = data.get("updates")
+          if not isinstance(updates, list) or len(updates) == 0:
+              violations.append("'updates' must be a non-empty list")
+              updates = []
+
+          seen_ecosystems = set()
+          for i, entry in enumerate(updates):
+              label = f"updates[{i}]"
+              if not isinstance(entry, dict):
+                  violations.append(f"{label} is not a mapping")
+                  continue
+
+              ecosystem = entry.get("package-ecosystem")
+              if ecosystem:
+                  seen_ecosystems.add(ecosystem)
+              else:
+                  violations.append(f"{label} is missing 'package-ecosystem'")
+
+              if not entry.get("directory"):
+                  violations.append(f"{label} ({ecosystem}) is missing 'directory'")
+
+              schedule = entry.get("schedule")
+              if not isinstance(schedule, dict) or not schedule.get("interval"):
+                  violations.append(f"{label} ({ecosystem}) is missing 'schedule.interval'")
+
+              if entry.get("open-pull-requests-limit") is None:
+                  violations.append(f"{label} ({ecosystem}) is missing 'open-pull-requests-limit'")
+
+              labels = entry.get("labels")
+              if not isinstance(labels, list) or len(labels) == 0:
+                  violations.append(f"{label} ({ecosystem}) is missing a non-empty 'labels' list")
+
+              commit_message = entry.get("commit-message")
+              if not isinstance(commit_message, dict) or not commit_message.get("prefix"):
+                  violations.append(f"{label} ({ecosystem}) is missing 'commit-message.prefix'")
+
+          for required in required_ecosystems:
+              if required not in seen_ecosystems:
+                  violations.append(
+                      f"no 'updates' entry found for required package-ecosystem: {required!r}"
+                  )
+
+          if violations:
+              print(f"Found {len(violations)} dependabot.yml policy violation(s):")
+              for v in violations:
+                  print(f"::error file={CONFIG_PATH}::{v}")
+              sys.exit(1)
+
+          print(f"{CONFIG_PATH} conforms to org policy.")

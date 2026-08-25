@@ -1,4 +1,4 @@
- # Security Policy
+# Security Policy
 
 ## NABHOLD Shared
 
@@ -36,7 +36,10 @@ Reusable components should provide safe defaults rather than requiring every con
 
 ### Immutable Dependencies
 
-Third-party GitHub Actions should be pinned to full-length commit SHAs where required by NABHOLD policy.
+Every GitHub Action reference must be pinned to a full-length commit SHA —
+NABHOLD policy applies this organisation-wide, with no exception for
+`nabhold/shared`'s own reusable workflows/actions when consumed by another
+repository.
 
 ### No Embedded Credentials
 
@@ -357,7 +360,10 @@ unless there is a documented and unavoidable requirement.
 
 ## Pin Actions
 
-Third-party actions should be referenced using immutable full-length commit SHAs where required by organisation policy.
+All actions — third-party and `nabhold/shared`'s own reusable
+workflows/composite actions alike — must be referenced using immutable
+full-length commit SHAs. This is an organisation-wide requirement, not a
+per-repository option.
 
 Prefer:
 
@@ -466,7 +472,13 @@ Avoid introducing dependencies simply because they make a small task marginally 
 
 # 15. Action Pinning
 
-Action pinning is especially important for this repository because shared workflows can propagate a compromised dependency to multiple consumers.
+Action pinning is especially important for this repository because shared
+workflows can propagate a compromised dependency to multiple consumers —
+and because this repository's own `nabhold/shared/...@<ref>` references,
+consumed by every repo in the org, are themselves subject to the same
+requirement. There is no third-party-only carve-out: a floating `@v1` on
+a `nabhold/shared` reference is exactly as unpinned as a floating `@v4` on
+a third-party action.
 
 A mutable reference such as:
 

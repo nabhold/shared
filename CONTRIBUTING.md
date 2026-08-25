@@ -58,7 +58,9 @@ Contributions should:
 * minimise secrets;
 * avoid unnecessary write access;
 * use OIDC where appropriate;
-* pin third-party actions;
+* pin all actions to full-length commit SHAs — third-party actions AND
+  `nabhold/shared`'s own reusable workflows/composite actions when
+  consumed from another repository;
 * validate untrusted inputs;
 * avoid exposing credentials to untrusted code;
 * avoid unnecessary network access.
@@ -246,14 +248,23 @@ Avoid hard-coding values that consumers reasonably need to configure.
 
 # 8. GitHub Actions Security
 
-All third-party GitHub Actions must comply with NABHOLD's action-pinning policy.
+Every GitHub Action reference must comply with NABHOLD's action-pinning
+policy — this is organisation-wide and has no third-party carve-out. It
+applies equally to third-party actions and to `uses: nabhold/shared/...`
+references from consuming repositories.
 
-Where repository policy requires immutable references, use a complete 40-character commit SHA.
+Use a complete 40-character commit SHA for every `uses:` reference.
 
 Prefer:
 
 ```yaml
 uses: actions/checkout@<full-commit-sha> # v4.x.x
+```
+
+and
+
+```yaml
+uses: nabhold/shared/.github/workflows/python-ci.yml@<full-commit-sha> # v1.x.x
 ```
 
 over:
@@ -262,13 +273,23 @@ over:
 uses: actions/checkout@v4
 ```
 
+```yaml
+uses: nabhold/shared/.github/workflows/python-ci.yml@v1
+```
+
 and never use floating references such as:
 
 ```yaml
 uses: actions/checkout@main
 ```
 
-The release/version should be retained in a comment so maintainers can identify the human-readable release corresponding to the immutable SHA.
+The release/version should be retained in a comment so maintainers can
+identify the human-readable release corresponding to the immutable SHA.
+
+This is enforced automatically, not just by review — see
+`.github/workflows/enforce-action-pinning.yml` and
+`templates/caller-enforce-action-pinning.yml` for the reusable CI check
+consuming repositories can adopt.
 
 ---
 

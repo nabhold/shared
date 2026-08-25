@@ -1,0 +1,28 @@
+# Copy into <repo>/.github/workflows/enforce-dependabot-config.yml
+# No adjustments usually needed — delete this comment block once copied.
+
+name: Enforce Dependabot Config
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/dependabot.yml"
+  pull_request:
+    paths:
+      - ".github/dependabot.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    permissions:
+      contents: read
+    # SHA is nabhold/shared's main HEAD as of 2026-08-24 (commit 1f1d7e3),
+    # the last commit before nabhold/shared's main became temporarily
+    # broken — see README.md's "Immutable Dependencies" section. Re-verify
+    # and re-pin once that's resolved upstream and/or a v1.0.0 tag is cut;
+    # nabhold/shared has no tags at all yet, so @v1 was never a valid pin.
+    uses: nabhold/shared/.github/workflows/enforce-dependabot-config.yml@1f1d7e321464761e766c6d6ea57174f6a9349072 # main HEAD pre-corruption, no v1 tag exists yet

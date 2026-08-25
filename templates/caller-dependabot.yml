@@ -1,0 +1,52 @@
+# Copy into <repo>/.github/dependabot.yml
+# Resolve every TODO, then delete this comment block.
+#
+# NABHOLD's org-standard Dependabot config for GitHub Actions dependency
+# tracking. Every actions/checkout, nabhold/shared reference, etc. gets an
+# automatic bump PR once the tag/branch it's pinned against moves.
+#
+# This does NOT replace the action-pinning policy (see README.md's
+# "Immutable Dependencies") — Dependabot proposes the SHA bump with the
+# version comment updated to match; a human still reviews and merges each
+# PR. The two mechanisms are complementary: pinning stops an action from
+# changing under you silently; Dependabot is how you deliberately choose
+# to move the pin forward.
+#
+# Compliance with this shape is checked automatically by
+# nabhold/shared/.github/workflows/enforce-dependabot-config.yml — see
+# templates/caller-enforce-dependabot-config.yml to adopt that check in
+# this repo's own CI.
+
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Africa/Johannesburg" # TODO: adjust to this repo/team's timezone
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    target-branch: "main" # TODO: adjust if this repo's default branch differs
+
+  # TODO: add further package-ecosystem entries here (e.g. "pip", "npm",
+  # "docker") if this repo has other dependency manifests worth tracking.
+  # Keep every entry's shape consistent with the one above — schedule,
+  # open-pull-requests-limit, labels, and commit-message are all required
+  # on every entry, not just this first one. enforce-dependabot-config.yml
+  # checks that.

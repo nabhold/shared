@@ -193,7 +193,7 @@ Example:
 ```yaml
 jobs:
   ci:
-    uses: nabhold/shared/.github/workflows/python-ci.yml@v1
+    uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
 ```
 
 ---
@@ -322,7 +322,13 @@ should be preferred over broad permissions unless additional access is demonstra
 
 ## Immutable Dependencies
 
-GitHub Actions should be pinned to full-length commit SHAs wherever organisation policy requires immutable action references.
+GitHub Actions must be pinned to full-length commit SHAs. This is an
+organisation-wide requirement and applies to every `uses:` reference without
+exception — third-party actions (`actions/checkout`), and **nabhold/shared's
+own reusable workflows and composite actions**, wherever they're consumed
+from another repository (`uses: nabhold/shared/...@<sha>`). A floating tag,
+a branch name, or `@main` are all disallowed as the checked-in reference,
+regardless of source.
 
 Avoid:
 
@@ -330,18 +336,74 @@ Avoid:
 uses: actions/checkout@v4
 ```
 
+```yaml
+uses: nabhold/shared/.github/workflows/python-ci.yml@v1
+```
+
 Prefer:
 
 ```yaml
-uses: actions/checkout@<40-character-commit-sha>
+uses: actions/checkout@<40-character-commit-sha> # v4.x.x
 ```
 
-with the release version documented in a comment.
+```yaml
+uses: nabhold/shared/.github/workflows/python-ci.yml@<40-character-commit-sha> # v1.x.x
+```
+
+with the release version (or, if no tag exists yet for `nabhold/shared`,
+"main HEAD" and the verification date) documented in a comment. Verify the
+SHA live against the upstream tag rather than trusting a marketplace
+listing or a previous PR — see `templates/caller-*.yml` for examples of
+this comment style in practice.
+
+A repository can enforce this automatically in CI rather than relying on
+review alone — see
+[`enforce-action-pinning.yml`](.github/workflows/enforce-action-pinning.yml)
+and `templates/caller-enforce-action-pinning.yml`. This repository dogfoods
+its own check via [`ci.yml`](.github/workflows/ci.yml), which calls
+`enforce-action-pinning.yml` locally on every push/PR touching
+`.github/workflows/` or `.github/actions/` — nothing here is exempt just
+because it's the source of the policy rather than a consumer of it.
 
 This provides both:
 
 1. immutable execution; and
 2. human-readable release traceability.
+
+## Dependency Updates (Dependabot)
+
+Pinning to a SHA stops an action from changing under you silently — it
+doesn't, by itself, get you the update. `.github/dependabot.yml` is how a
+pinned reference actually moves forward: Dependabot opens a PR bumping
+the SHA (and the version comment) whenever the upstream tag/branch it was
+pinned against advances, so a human still reviews and merges each change
+rather than it happening invisibly.
+
+Dependabot configuration cannot be centralized the way reusable
+workflows/actions can. `.github/dependabot.yml` is read directly by
+GitHub's Dependabot service at that literal path in each repository —
+there's no `workflow_call`-equivalent import mechanism, and no `uses:`
+syntax a repo's config can reference to pull in another repo's config.
+Given that constraint, this repository provides the closest practical
+equivalent:
+
+- [`templates/dependabot.yml`](templates/dependabot.yml) — the canonical
+  config, copied into a consuming repo's `.github/dependabot.yml` and
+  adjusted for TODOs (timezone, default branch).
+- [`enforce-dependabot-config.yml`](.github/workflows/enforce-dependabot-config.yml)
+  — a reusable **workflow** (this part *can* use `workflow_call`, since
+  it's an Actions check, not a Dependabot config) that validates a
+  consuming repo's actual `.github/dependabot.yml` still satisfies the
+  org's structural requirements — `version: 2`, a `github-actions`
+  ecosystem entry present, and every declared entry having a schedule,
+  an open-PR limit, labels, and a commit-message prefix. It deliberately
+  does not enforce exact values (schedule cadence, label wording,
+  timezone) since those legitimately vary by team; only structural
+  completeness is checked. Adopt it via
+  `templates/caller-enforce-dependabot-config.yml`.
+
+This repository dogfoods that check too, via the `dependabot-config` job
+in [`ci.yml`](.github/workflows/ci.yml).
 
 ---
 
@@ -369,13 +431,16 @@ Changes must therefore be treated with the same care as changes to a public soft
 
 Reusable workflows and actions should be versioned.
 
-Consumers should preferably reference a stable major version:
+Consumers should preferably reference a stable major release line — but,
+per the [Immutable Dependencies](#immutable-dependencies) policy, pinned to
+that release's commit SHA rather than the floating tag:
 
 ```yaml
-uses: nabhold/shared/.github/workflows/python-ci.yml@v1
+uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
 ```
 
-while major-version branches/tags are maintained deliberately.
+while major-version branches/tags are maintained deliberately as the
+human-readable label for that SHA.
 
 Breaking changes should result in a new major version.
 
@@ -423,15 +488,20 @@ Examples:
 * documentation correction;
 * security fix that does not change the interface.
 
-For reusable workflows, consumers may generally pin to a major release:
+For reusable workflows, major-version tags (`v1`, `v2`, ...) are still cut
+and maintained, and remain the human-readable way to talk about a release
+line — but per the [Immutable Dependencies](#immutable-dependencies) policy,
+the reference actually checked into a caller's workflow file must resolve
+that tag to its full-length commit SHA at the time of pinning:
 
-```text
-@v1
+```yaml
+uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
 ```
 
-while the organisation maintains the corresponding release line.
-
-Repositories requiring maximum reproducibility may pin to a specific immutable commit.
+not the floating tag itself. Consumers re-pin (bump the SHA and comment)
+to pick up new patch/minor releases within the same major line; Dependabot
+(configured in this repository, see `.github/dependabot.yml`) opens these
+bump PRs automatically once a tag exists to track.
 
 ---
 
@@ -571,7 +641,7 @@ on:
 
 jobs:
   ci:
-    uses: nabhold/shared/.github/workflows/python-ci.yml@v1
+    uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
 ```
 
 If inputs are required:
@@ -579,7 +649,7 @@ If inputs are required:
 ```yaml
 jobs:
   ci:
-    uses: nabhold/shared/.github/workflows/python-ci.yml@v1
+    uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
     with:
       python-version: "3.13"
       test-command: "pytest"

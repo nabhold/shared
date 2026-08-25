@@ -1,0 +1,78 @@
+# ==============================================================================
+# NABHOLD Shared Engineering Infrastructure
+# Repository CI: nabhold/shared's own checks
+#
+# File: .github/workflows/ci.yml
+#
+# PURPOSE:
+#   Unlike every other file in .github/workflows/, this one is NOT a
+#   reusable workflow for consumers to call — it's this repository's own
+#   CI, verifying nabhold/shared's own files stay compliant with the
+#   policies it hands out to everyone else.
+#
+#   Before this file existed, nothing actually ran on nabhold/shared's own
+#   commits: greetings.yml, pages-zensical.yml, enforce-action-pinning.yml,
+#   and enforce-dependabot-config.yml all declare only `on: workflow_call`,
+#   since a called workflow can't own a real repository-event trigger.
+#   That gap is exactly how a corrupted enforce-action-pinning.yml (raw
+#   patch text committed as the file's content, invalid YAML) reached main
+#   undetected — nothing was checking this repo's own files on push/PR.
+#   This workflow closes that gap by dogfooding both governance checks
+#   against this repository itself.
+#
+# WHY LOCAL PATH REFERENCES BELOW
+# (./.github/workflows/enforce-action-pinning.yml,
+# ./.github/workflows/enforce-dependabot-config.yml) RATHER THAN PINNED
+# nabhold/shared/...@<sha> REFERENCES:
+#   Calling a reusable workflow by relative path within the SAME
+#   repository always resolves to the exact commit currently checked
+#   out — it is not a separate fetch of a possibly-different ref, so
+#   there is no immutability gap to pin against. This is one of the few
+#   places in this repository (alongside genuinely local composite
+#   actions such as .github/actions/derive-value-from-yaml) where an
+#   unpinned `uses:` is correct rather than a policy violation —
+#   enforce-action-pinning.yml's own checker deliberately skips local
+#   (`./`) references for the same reason, so neither line below will
+#   flag itself.
+#
+# CHANGE LOG (most recent first)
+# ------------------------------------------------------------------------------
+# * Added a dependabot-config job dogfooding enforce-dependabot-config.yml
+#   against this repository's own .github/dependabot.yml, alongside the
+#   existing action-pinning self-check.
+# * Initial version — added after discovering nabhold/shared had no CI on
+#   itself, following a corrupted enforce-action-pinning.yml reaching
+#   main undetected.
+# ==============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+      - ".github/dependabot.yml"
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+      - ".github/dependabot.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  action-pinning:
+    name: Enforce action pinning (self-check)
+    permissions:
+      contents: read
+    uses: ./.github/workflows/enforce-action-pinning.yml
+
+  dependabot-config:
+    name: Enforce dependabot.yml policy (self-check)
+    permissions:
+      contents: read
+    uses: ./.github/workflows/enforce-dependabot-config.yml
