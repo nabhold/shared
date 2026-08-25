@@ -1,0 +1,40 @@
+# Copy into <repo>/.github/workflows/security-codeql.yml
+# Adjust `languages` for this repo (JSON array string — see
+# security-codeql.yml's own header for the input format and supported
+# identifiers), resolve the TODO below, then delete this comment block.
+#
+# Only adopt this in a repo that has at least one CodeQL-supported
+# language. CodeQL has no extractor for plain shell scripts or
+# Dockerfiles — a repo whose source is only those (e.g. nabhold/baobab-dev
+# today) has nothing for this workflow to analyse and should skip it
+# until that changes.
+
+name: Security — CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    # TODO — PLACEHOLDER, NOT YET A VALID PIN. security-codeql.yml does
+    # not exist in nabhold/shared yet as of this writing (2026-08-25).
+    # Sequence:
+    #   1. Merge security-codeql.yml into nabhold/shared's main.
+    #   2. Resolve the real SHA: `git ls-remote https://github.com/nabhold/shared.git main`
+    #      (or the SHA of a tagged release once one is cut).
+    #   3. Replace the placeholder below before merging this caller.
+    uses: nabhold/shared/.github/workflows/security-codeql.yml@0000000000000000000000000000000000000000 # TODO: replace after nabhold/shared adopts this workflow
+    with:
+      languages: '["python"]'

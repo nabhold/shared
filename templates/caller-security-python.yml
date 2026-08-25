@@ -1,0 +1,52 @@
+# Copy into <repo>/.github/workflows/security-python.yml
+# Assumes a uv-managed project with a "security" dependency-group that
+# installs bandit and pip-audit (see nabhold/baobab's pyproject.toml for
+# the convention), plus a bandit.yaml at the repo root. Adjust the
+# `with:` block's paths for a repo that differs, resolve the TODO below,
+# then delete this comment block.
+#
+# Only adopt this in a repo that actually has Python source to scan —
+# skip it for a repo with no Python application code.
+
+name: Security — Python (Bandit + pip-audit)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.py"
+      - "**/pyproject.toml"
+      - "**/uv.lock"
+      - "bandit.yaml"
+  pull_request:
+    paths:
+      - "**/*.py"
+      - "**/pyproject.toml"
+      - "**/uv.lock"
+      - "bandit.yaml"
+  schedule:
+    # Weekly, independent of code changes — a dependency already in
+    # uv.lock can become vulnerable after a new CVE is disclosed, with
+    # no code change to trigger the push/pull_request triggers above.
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    permissions:
+      contents: read
+    # TODO — PLACEHOLDER, NOT YET A VALID PIN. security-python.yml does
+    # not exist in nabhold/shared yet as of this writing (2026-08-25).
+    # Sequence:
+    #   1. Merge security-python.yml into nabhold/shared's main.
+    #   2. Resolve the real SHA: `git ls-remote https://github.com/nabhold/shared.git main`
+    #      (or the SHA of a tagged release once one is cut).
+    #   3. Replace the placeholder below before merging this caller.
+    uses: nabhold/shared/.github/workflows/security-python.yml@0000000000000000000000000000000000000000 # TODO: replace after nabhold/shared adopts this workflow
+    with:
+      bandit-config-path: "bandit.yaml"
+      bandit-target: "."
+      dependency-group: "security"

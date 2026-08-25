@@ -1,0 +1,112 @@
+# ==============================================================================
+# NABHOLD Shared Engineering Infrastructure
+# Reusable Workflow: Python SAST (Bandit) + Dependency Audit (pip-audit)
+#
+# File: .github/workflows/security-python.yml
+#
+# PURPOSE:
+#   Runs the two Python-specific security checks already established as
+#   local convention in nabhold/baobab (see its bandit.yaml and its
+#   Makefile's `security` target) as an actual CI gate — previously
+#   neither ran anywhere except a developer's own machine. uv-specific:
+#   assumes a `uv`-managed project with a `[dependency-groups]` entry
+#   that installs bandit + pip-audit (baobab's own `security` group).
+#
+# BOTH SCANNERS ALWAYS RUN, EVEN IF ONE FAILS:
+#   Each scan step uses `continue-on-error: true` so that a Bandit
+#   finding doesn't hide a pip-audit finding (or vice versa) by skipping
+#   the rest of the job — both tools' full output reaches the CI log in
+#   every run. A final step inspects both outcomes and fails the job if
+#   either scanner failed, so the job's overall pass/fail still gates
+#   correctly; only the visibility differs from a naive sequential run.
+#
+# BANDIT INVOCATION:
+#   `-c <bandit-config-path> -r <bandit-target> -ll -ii` is bandit.yaml's
+#   own documented "Recommended CI invocation" (see that file's POLICY
+#   RATIONALE section) — followed verbatim here rather than
+#   re-litigating severity/confidence thresholds in a second place.
+#
+# CHANGE LOG (most recent first)
+# ------------------------------------------------------------------------------
+# * Initial version.
+# ==============================================================================
+
+name: Reusable — Python Security (Bandit + pip-audit)
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: "Directory containing pyproject.toml, relative to the repo root."
+        type: string
+        required: false
+        default: "."
+      bandit-config-path:
+        description: "Path to the Bandit config file, relative to working-directory."
+        type: string
+        required: false
+        default: "bandit.yaml"
+      bandit-target:
+        description: "Path Bandit should recursively scan, relative to working-directory."
+        type: string
+        required: false
+        default: "."
+      dependency-group:
+        description: "uv dependency-group to sync before scanning (must provide bandit and pip-audit)."
+        type: string
+        required: false
+        default: "security"
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Bandit + pip-audit
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6 (verified live 2026-08-25)
+        with:
+          enable-cache: true
+
+      - name: Sync security dependency group
+        run: uv sync --locked --group "${{ inputs.dependency-group }}"
+
+      - name: Run Bandit (SAST)
+        id: bandit
+        continue-on-error: true
+        run: uv run bandit -c "${{ inputs.bandit-config-path }}" -r "${{ inputs.bandit-target }}" -ll -ii
+
+      - name: Run pip-audit (dependency vulnerability audit)
+        id: pip-audit
+        continue-on-error: true
+        run: uv run pip-audit
+
+      - name: Evaluate scan results
+        if: always()
+        run: |
+          set -euo pipefail
+          failed=0
+
+          if [[ "${{ steps.bandit.outcome }}" == "failure" ]]; then
+            echo "::error::Bandit found issue(s) at MEDIUM+ severity/confidence — see the 'Run Bandit' step above."
+            failed=1
+          fi
+
+          if [[ "${{ steps.pip-audit.outcome }}" == "failure" ]]; then
+            echo "::error::pip-audit found known-vulnerable dependencies — see the 'Run pip-audit' step above."
+            failed=1
+          fi
+
+          if [[ "$failed" -eq 1 ]]; then
+            exit 1
+          fi
+
+          echo "Bandit and pip-audit both passed."

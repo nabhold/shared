@@ -28,6 +28,22 @@ workflow at all — see its own entry below for why it's copied differently.
   etc.). Pairs with `dependabot.yml` above the way
   `caller-enforce-action-pinning.yml` pairs with the pinning policy —
   copy once, then let this catch drift afterwards.
+- `caller-release.yml` — creates a GitHub Release from a pushed version
+  tag, with release notes drawn from the caller's own CHANGELOG.md. Not
+  a fit for a repository whose release is inseparable from a bespoke
+  artifact pipeline (container build/sign/attest, package publish) — see
+  release.yml's own header.
+- `caller-security-secrets-scan.yml` — fails CI if gitleaks finds a
+  secret anywhere in the calling repository's git history. Toolchain-
+  agnostic, works for any repo — recommended for every repo, same as
+  action-pinning.
+- `caller-security-codeql.yml` — runs GitHub CodeQL SAST for whichever
+  languages the caller declares. Only adopt this in a repo that has at
+  least one CodeQL-supported language — see the template's own header.
+- `caller-security-python.yml` — runs Bandit (SAST) and pip-audit
+  (dependency vulnerability audit) for a uv-managed Python repo. Assumes
+  the "security" dependency-group convention documented in
+  nabhold/baobab's pyproject.toml.
 
 Steps:
 
@@ -39,9 +55,14 @@ Steps:
    (see README.md's "Immutable Dependencies" section). Verify the SHA
    live against the upstream tag/branch rather than trusting what's
    already in the template, since it may be stale by the time you copy
-   it. **As of this writing `nabhold/shared` has no tags at all** — until
-   a `v1.0.0` release is cut, the only thing to pin to is `main` HEAD;
-   re-pin once a tag exists.
+   it. **As of this writing `nabhold/shared` has one tagged release,
+   `v1.0.0`** — pin to that tag's SHA for any file it already contains
+   (`greetings.yml`, `pages-zensical.yml`, `enforce-action-pinning.yml`,
+   `enforce-dependabot-config.yml`). A file added after `v1.0.0` (for
+   example `release.yml`, or the `security-*.yml` workflows) has no
+   covering tag yet — pin to `main` HEAD instead
+   (`git ls-remote https://github.com/nabhold/shared.git main`) and
+   re-pin once a new tag is cut that includes it.
 4. Confirm the consuming repo's Settings → Actions → General → Actions
    permissions allows `nabhold/shared` (only relevant if that repo has an
    explicit allow-list rather than "Allow all actions").

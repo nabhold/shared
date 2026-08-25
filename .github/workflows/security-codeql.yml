@@ -1,0 +1,100 @@
+# ==============================================================================
+# NABHOLD Shared Engineering Infrastructure
+# Reusable Workflow: CodeQL Static Analysis
+#
+# File: .github/workflows/security-codeql.yml
+#
+# PURPOSE:
+#   Runs GitHub's CodeQL SAST engine against the calling repository for
+#   whichever languages it declares via the `languages` input, uploading
+#   results to that repository's own Security tab (GitHub-native — no
+#   external service, no license). Fulfils the "CodeQL integration" item
+#   under this repository's own README.md > Roadmap > Security.
+#
+# WHY A `languages` INPUT RATHER THAN A FIXED LANGUAGE:
+#   Today only nabhold/baobab has a language CodeQL can analyse (Python).
+#   nabhold/baobab-dev is Dockerfile/shell — CodeQL has no first-class
+#   extractor for either, so it isn't a consumer of this workflow, not
+#   because the workflow doesn't support it, but because there is nothing
+#   here for it to analyse yet. This is still a legitimate "one
+#   implementation, many consumers" candidate per this repository's own
+#   Guiding Principle: baobab's other planned services (frontend, mobile)
+#   will add JS/TS/other CodeQL-supported languages later, and every
+#   future consumer reuses this same file by passing a different
+#   `languages` value — nothing here is baobab-specific.
+#
+# INPUT FORMAT:
+#   `languages` is a JSON array STRING (e.g. '["python"]' or
+#   '["python","javascript-typescript"]'), not a plain comma list — it is
+#   fed straight into `fromJSON()` to build the matrix below. See
+#   https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning
+#   for supported language identifiers.
+#
+# build-mode:
+#   Defaults to "none" — correct for interpreted languages (Python,
+#   JavaScript/TypeScript, Ruby) where CodeQL extracts source directly
+#   with no compile step. A future compiled-language consumer (Go, Java,
+#   C/C++) would need to override this to "autobuild" or "manual"; that
+#   is a per-consumer decision, not something this workflow should guess.
+#
+# PERMISSIONS:
+#   `security-events: write` is required to upload SARIF results to the
+#   calling repository's Security tab; `actions: read` is required by
+#   CodeQL on private repositories to read workflow run information. Both
+#   are declared as a CEILING here — same pattern as every other reusable
+#   workflow in this repository — the calling job must grant at least
+#   this much itself.
+#
+# CHANGE LOG (most recent first)
+# ------------------------------------------------------------------------------
+# * Initial version.
+# ==============================================================================
+
+name: Reusable — CodeQL Static Analysis
+
+on:
+  workflow_call:
+    inputs:
+      languages:
+        description: 'JSON array string of CodeQL language identifiers, e.g. ''["python"]''.'
+        type: string
+        required: false
+        default: '["python"]'
+      build-mode:
+        description: 'CodeQL build mode for every language in the matrix: "none" (interpreted languages), "autobuild", or "manual".'
+        type: string
+        required: false
+        default: "none"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-26.04
+
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ${{ fromJSON(inputs.languages) }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@37f2634a92ba38a0926ef79a0748ac8ae7d95ab2 # v4.37.8
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ inputs.build-mode }}
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@37f2634a92ba38a0926ef79a0748ac8ae7d95ab2 # v4.37.8
+        with:
+          category: "/language:${{ matrix.language }}"
