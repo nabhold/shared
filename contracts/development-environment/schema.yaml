@@ -97,10 +97,10 @@ profiles:
 
   frontend:
     description: >
-      Node/pnpm/frontend-tooling subset only. Used by repositories that build
-      customer-facing product frontends and do not need Python, Flutter, or
-      a PostgreSQL client locally (currently: nabhold/nabhold, zuribeans,
-      thamani, equator-estate).
+      Node/pnpm/Turborepo only — no browser binaries. Used for day-to-day
+      interactive development (Codespaces) in customer-facing product
+      frontends. Does not need Python, Flutter, or a PostgreSQL client
+      locally (currently: nabhold/nabhold, zuribeans, thamani, equator-estate).
     image_tag_pattern: "ghcr.io/nabhold/baobab-dev:{version}-frontend"
     capability_domains:
       - "platform"                # shared base layer
@@ -108,14 +108,32 @@ profiles:
       - "package_managers.pnpm"   # pnpm only — NOT uv, NOT poetry
       - "utilities"                # generic CLI tools, same subset as `full`
       - "development.github_cli"  # git/gh — NOT necessarily docker
-      - "frontend_tooling"         # Turborepo, Playwright — see status note
-    source_domains_confirmed_present: false  # "frontend_tooling" domain and
-                                              # its contents do not yet exist
-                                              # in versions.yaml; see status
-                                              # note above
-    pending_additions_required_in_versions_yaml:
-      - "turborepo"
-      - "playwright"
+      - "frontend_tooling.turbo"   # Turborepo only in this profile
+    source_domains_confirmed_present: true   # frontend_tooling.turbo now
+                                              # present in versions.yaml
+
+  frontend-e2e:
+    description: >
+      Extends `frontend` with browser-dependent tooling for end-to-end
+      testing, visual/image processing, and performance auditing. Kept as
+      a SEPARATE profile from `frontend` (not merged into it) specifically
+      so daily interactive development never carries Playwright's browser
+      binaries or their CVE surface — that cost is paid only in CI test
+      jobs that actually need it.
+    extends: "frontend"
+    image_tag_pattern: "ghcr.io/nabhold/baobab-dev:{version}-frontend-e2e"
+    capability_domains:
+      - "frontend_tooling.playwright"
+      - "frontend_tooling.sharp"
+      - "frontend_tooling.lighthouse"
+    source_domains_confirmed_present: true
+    notes:
+      - >
+        `lighthouse` deliberately does not get its own browser install — it
+        reuses the Chromium binary Playwright already downloads. Do not add
+        a second Chromium install path for Lighthouse; if a future version
+        of this profile needs that, treat it as a deliberate decision, not
+        an accident of two tools each assuming they own browser provisioning.
 
 # ------------------------------------------------------------------------------
 # Required structure of a per-repository declaration
@@ -247,3 +265,11 @@ notes:
     that repository's own declaration file is the correct place to add it —
     not a change to the shared profile baseline, which would silently affect
     the other three repos.
+  - >
+    `frontend-e2e` is a CI-only profile, not a devcontainer profile. A
+    digital-estate repo's `.nabhold/environment.yaml` declares
+    `profile: frontend` for its everyday Codespaces environment; its CI
+    workflow separately references the `*-frontend-e2e` image tag for
+    end-to-end test jobs specifically. Do not set a repo's primary
+    declaration to `frontend-e2e` — that would put browser binaries in
+    every developer's daily container for no reason.

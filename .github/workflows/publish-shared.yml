@@ -1,0 +1,96 @@
+# ==============================================================================
+# NABHOLD GROUP AFRICA — nabhold/shared
+# Publish workspace packages (@nabhold/contracts-ts, and future @nabhold/*
+# packages) to GitHub Packages (GHCR npm registry) via Changesets.
+#
+# Target path: .github/workflows/publish-shared.yml
+#
+# Conventions honoured here (matching nabhold/baobab-dev's established CI
+# hardening, not the weaker defaults from the original draft this workflow
+# was adapted from):
+#
+#   - Runners pinned to `ubuntu-26.04`, never floating `ubuntu-latest`.
+#   - Every third-party action pinned to a full 40-character commit SHA,
+#     resolved via `git ls-remote --tags`, with the version kept as a
+#     trailing comment for humans. Annotated tags are peeled (`^{}`) to
+#     their underlying commit before pinning — a floating major-version tag
+#     (`@v4`) is not an acceptable substitute for a SHA pin.
+#
+# To re-resolve a pin when bumping an action's version:
+#   git ls-remote --tags https://github.com/<owner>/<repo>.git
+#   (peeled `^{}` entries are the real commit for annotated tags; unpeeled
+#   entries are the commit directly for lightweight tags)
+#
+# This workflow only runs when package-relevant paths change — it must NOT
+# fire on every governance-contract YAML edit under contracts/legal-entity,
+# contracts/tenancy, etc., which have nothing to do with npm publishing.
+# ==============================================================================
+
+name: Publish Shared Packages to GHCR
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "packages/**"
+      - "package.json"
+      - "pnpm-workspace.yaml"
+      - "turbo.json"
+      - ".changeset/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false   # never cancel an in-flight publish
+
+permissions:
+  contents: write        # changesets/action needs to open the "Version Packages" PR
+  packages: write        # publishing to GHCR
+  pull-requests: write   # changesets/action needs to open/update that PR
+
+jobs:
+  release:
+    name: Build and publish (or open Version Packages PR)
+    runs-on: ubuntu-26.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0   # changesets needs full history to compute changelogs
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        # No `version:` input — pnpm version is sourced from this repo's
+        # root package.json "packageManager" field (pnpm@11.24.0), so there
+        # is exactly one place that version is declared, not two.
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"   # matches baobab-dev's pinned Node major version
+          cache: "pnpm"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@nabhold"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build all packages
+        run: pnpm build
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release Pull Request or publish to GHCR
+        id: changesets
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        with:
+          # If unreleased changesets exist on main, this opens/updates a
+          # "Version Packages" PR instead of publishing directly — publishing
+          # only happens when that PR is merged (see workflow header note).
+          publish: pnpm release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
