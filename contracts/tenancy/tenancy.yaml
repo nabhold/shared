@@ -1,0 +1,258 @@
+# ==============================================================================
+# NABHOLD GROUP AFRICA
+# Tenancy Contract
+#
+# Target path: nabhold/shared/contracts/tenancy/tenancy.yaml
+#
+# Purpose
+# -------
+# Declares what NABHOLD considers a "tenant" of the Baobab platform, and the
+# obligations that MUST hold for any system that provisions, serves, or
+# decommissions one. This is a GOVERNANCE contract (ADR-0001 section 2.5):
+# it states obligations, not implementation.
+#
+# This contract is a three-way relationship (ADR-0001 / prior tenancy
+# discussion):
+#
+#   shared          -> declares the obligation
+#                       ("tenant data MUST be isolated")
+#   baobab          -> implements the tenancy model
+#                       (tenant resolution, tenant context, tenant-aware APIs)
+#   infrastructure  -> enforces the physical controls
+#                       (network boundaries, secrets, storage isolation)
+#
+# It MUST NOT specify:
+#   - a database isolation strategy (schema-per-tenant vs. row-level vs.
+#     database-per-tenant) — that is a `baobab` architecture decision
+#   - a cloud resource, namespace, or credential — that is an
+#     `infrastructure` decision
+#
+# Relationship to other contracts
+# --------------------------------
+#   legal-entity/registry.yaml  -> supplies the canonical `entity_id` that
+#                                  every tenant record MUST reference
+#   security/ (not yet written) -> supplies the detailed encryption/auditing
+#                                  standards this contract only references
+#
+# Versioning
+# ----------
+# The contract schema is versioned independently of `baobab`'s tenancy
+# implementation and of any individual tenant's data.
+#
+# Governing decision record: ADR-0001 (nabhold/shared/docs/adr/)
+# ==============================================================================
+
+schema:
+  name: "baobab-tenancy-contract"
+  version: "1.0"
+
+# ------------------------------------------------------------------------------
+# What constitutes a tenant
+# ------------------------------------------------------------------------------
+
+tenant_definition:
+
+  description: >
+    A tenant is a legal entity, listed in the canonical legal-entity registry
+    with `baobab_tenant: true`, that consumes one or more Baobab products
+    under its own isolated operational context. A legal entity's independent
+    digital estate (its own website/frontend repository) is a SEPARATE
+    concern from its status as a Baobab tenant — the two are related only
+    through the shared `entity_id` (see ADR-0001 section 2.1: "a legal
+    entity may consume Baobab as a tenant without its digital estate
+    becoming part of Baobab").
+
+  requires_registry_entry: true
+  registry_source: "shared/contracts/legal-entity/registry.yaml"
+
+# ------------------------------------------------------------------------------
+# Required identifiers
+# ------------------------------------------------------------------------------
+
+identifiers:
+
+  entity_id:
+    required: true
+    source: "legal-entity registry"
+    description: >
+      The canonical, immutable business identifier (e.g. "THAMANI-GLOBAL").
+      Every tenant record, in every system, MUST carry this value. No system
+      may invent a local alias for it.
+
+  tenant_id:
+    required: true
+    description: >
+      A platform-internal technical identifier (opaque, e.g. UUID), distinct
+      from `entity_id`. Its purpose is to decouple internal data-model keys
+      from the business identifier, so that a correction to legal-entity
+      metadata never requires a database migration of tenant-scoped data.
+    mapping_obligation: >
+      The mapping tenant_id -> entity_id MUST be resolvable at all times, in
+      every environment, without exception. Loss of this mapping is treated
+      as a data-integrity incident.
+    exact_format: null   # TBD — left to baobab's implementation (e.g. UUIDv4
+                          # vs. ULID); this contract only mandates that one
+                          # exists and is immutable once assigned
+
+# ------------------------------------------------------------------------------
+# Isolation obligations
+#
+# States the BAR that must be cleared. Does not mandate the mechanism.
+# ------------------------------------------------------------------------------
+
+isolation:
+
+  data_isolation:
+    obligation: >
+      No tenant may read, write, or infer the existence of another tenant's
+      data under any normal operating condition. This MUST hold regardless
+      of the underlying storage isolation strategy chosen by `baobab`.
+    mechanism: null   # NOT specified here — baobab's own architecture
+                       # documentation records the chosen strategy
+                       # (e.g. row-level security, schema-per-tenant,
+                       # database-per-tenant) and justifies it there,
+                       # not in this contract
+
+  tenant_context_propagation:
+    obligation: >
+      Tenant context MUST be established at the point of authentication and
+      MUST propagate through every internal call (gRPC) and external query
+      (GraphQL) without relying on the caller to supply it voluntarily.
+      A request that cannot resolve a tenant context MUST be rejected, not
+      defaulted to a "no tenant" state.
+
+  cross_tenant_access_attempts:
+    obligation: >
+      Any attempt (successful or not) to access data outside the resolved
+      tenant context MUST be logged and MUST be treated as a security event,
+      not a silent application-level 403.
+    detailed_standard: "shared/contracts/security/ (not yet written)"
+
+# ------------------------------------------------------------------------------
+# Mandatory tenant metadata
+# ------------------------------------------------------------------------------
+
+required_metadata:
+
+  - field: "entity_id"
+    description: "Canonical business identifier, from the legal-entity registry"
+
+  - field: "tenant_id"
+    description: "Platform-internal technical identifier"
+
+  - field: "status"
+    allowed_values: ["provisioning", "active", "suspended", "decommissioning", "decommissioned"]
+    description: "Current lifecycle state — see lifecycle section below"
+
+  - field: "provisioned_at"
+    description: "Timestamp of initial tenant provisioning"
+
+  - field: "products_enabled"
+    description: >
+      The set of Baobab products this tenant is entitled to consume.
+      MUST be cross-checked against `baobab_products` in the legal-entity
+      registry — the registry states intent, this field states enforced
+      entitlement, and the two SHOULD reconcile.
+
+# ------------------------------------------------------------------------------
+# Lifecycle events
+# ------------------------------------------------------------------------------
+
+lifecycle:
+
+  events:
+    - name: "provisioning"
+      description: >
+        Tenant record created, `tenant_id` assigned, mapped to an `entity_id`
+        already present in the legal-entity registry. A tenant MUST NOT be
+        provisioned for an `entity_id` that does not exist in the registry.
+
+    - name: "activation"
+      description: "Tenant transitions to `active`; product access becomes live."
+
+    - name: "suspension"
+      description: >
+        Tenant access is withdrawn without data deletion. MUST be reversible.
+        Reason for suspension MUST be recorded.
+
+    - name: "decommissioning"
+      description: >
+        Tenant is being wound down. Data retention/export obligations
+        (see below) MUST be satisfied before the `decommissioned` state
+        is reached.
+
+    - name: "decommissioned"
+      description: "Terminal state. Data handling per retention policy below."
+
+  data_retention_on_decommission:
+    obligation: >
+      Tenant data MUST NOT be deleted immediately on decommissioning. A
+      retention window MUST be observed before permanent deletion, and the
+      tenant (or its legal successor) MUST be able to request export of its
+      data within that window.
+    retention_period: null   # TBD — depends on applicable data-protection
+                              # regime, see note below; not fabricated here
+    applicable_regime: null  # TBD — likely POPIA (South Africa) and/or GDPR
+                              # for any tenant operating markets inside the
+                              # EU/UK (e.g. a Zuribeans UK storefront), but
+                              # this has not been confirmed by Legal and
+                              # MUST NOT be treated as settled until it is
+
+# ------------------------------------------------------------------------------
+# Security guarantees (references, not full specification)
+#
+# Full detail belongs in shared/contracts/security/, not yet written. This
+# section states the guarantees that MUST exist; the "how" is deferred.
+# ------------------------------------------------------------------------------
+
+security:
+
+  encryption_at_rest:
+    obligation: "Tenant data MUST be encrypted at rest."
+    standard: "shared/contracts/security/ (not yet written)"
+
+  encryption_in_transit:
+    obligation: "All tenant-context-bearing traffic MUST be encrypted in transit."
+    standard: "shared/contracts/security/ (not yet written)"
+
+  audit_logging:
+    obligation: >
+      Every tenant-provisioning, suspension, and decommissioning event MUST
+      be recorded in an immutable audit log, attributable to an authenticated
+      actor.
+
+# ------------------------------------------------------------------------------
+# Ownership
+# ------------------------------------------------------------------------------
+
+ownership:
+
+  contract_schema:
+    owner: "nabhold/shared"
+
+  tenancy_model_implementation:
+    owner: "nabhold/baobab"
+
+  physical_isolation_enforcement:
+    owner: "nabhold/infrastructure"
+
+# ------------------------------------------------------------------------------
+# Notes
+# ------------------------------------------------------------------------------
+
+notes:
+  - >
+    This contract intentionally does not choose a database isolation
+    strategy. That decision belongs to `nabhold/baobab` and should be
+    recorded in that repository's own architecture documentation (or a
+    follow-up ADR), justified against the obligations stated here.
+  - >
+    `applicable_regime` and `retention_period` are left null deliberately.
+    Populating them with an assumed jurisdiction or a plausible-sounding
+    number would be a fabrication this project's standards explicitly
+    forbid. They must come from Legal.
+  - >
+    A tenant's `status` in this contract is independent of its digital
+    estate repository's deployment status. A subsidiary can have a live
+    website while its Baobab tenant record is still `provisioning`, and
+    vice versa.

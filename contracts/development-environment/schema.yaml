@@ -1,0 +1,249 @@
+# ==============================================================================
+# NABHOLD GROUP AFRICA
+# Development Environment Contract — Schema
+#
+# Target path: nabhold/shared/contracts/development-environment/schema.yaml
+#
+# Purpose
+# -------
+# Defines the STRUCTURE that every repository's own environment declaration
+# (`.nabhold/environment.yaml`) must conform to, and defines the named
+# PROFILES available to declare against. This file is the schema; it is not
+# itself a declaration for any single repository.
+#
+# This is a GOVERNANCE contract (ADR-0001 section 2.5): it fixes structure
+# and validation rules, not specific tool versions. Specific versions live in
+# `nabhold/baobab-dev`'s `config/versions.yaml` -> `versions.lock`, which
+# remains the single source of truth for "what baobab-dev actually provides."
+#
+# Relationship between the pieces
+# ---------------------------------
+#   this schema                  -> "what may a declaration say?"
+#   <repo>/.nabhold/environment.yaml
+#                                 -> "what does THIS repo require?"
+#   baobab-dev/config/versions.lock
+#                                 -> "what does baobab-dev actually provide?"
+#
+# A compatibility validator (CI, to be implemented in nabhold/shared) reads
+# a consuming repo's declaration, resolves its declared `profile`, and checks
+# each required capability against versions.lock, filtered to that profile's
+# capability domain subset (see `profiles` below).
+#
+# Consuming repositories (five, per ADR-0001 section 2.8a)
+# -----------------------------------------------------------
+#   nabhold/baobab            -> profile: full
+#   nabhold/nabhold            \
+#   nabhold/zuribeans           |
+#   nabhold/thamani             |-> profile: frontend
+#   nabhold/equator-estate     /
+#
+# Every declaration file, regardless of repo, MUST live at the same relative
+# path: `.nabhold/environment.yaml`. This is what allows one validator
+# implementation to serve all five repos.
+#
+# Versioning
+# ----------
+# This schema is versioned independently of `baobab-dev`'s toolchain version
+# and independently of any individual repo's declaration.
+#
+# Governing decision record: ADR-0001 (nabhold/shared/docs/adr/)
+# ==============================================================================
+
+schema:
+  name: "nabhold-development-environment-contract"
+  version: "1.0"
+
+# ------------------------------------------------------------------------------
+# Provider
+# ------------------------------------------------------------------------------
+
+provider:
+  name: "baobab-dev"
+  repository: "nabhold/baobab-dev"
+  source_of_truth: "config/versions.yaml -> config/versions.lock"
+
+# ------------------------------------------------------------------------------
+# Profiles
+#
+# A profile is a named subset of baobab-dev's capability domains (as defined
+# in versions.yaml), mapped to a specific published image tag. Declarations
+# reference a profile by name; they do not repeat its contents.
+#
+# STATUS NOTE: the `frontend` profile below references Turborepo and
+# Playwright. As of this schema's authoring, NEITHER exists yet in
+# baobab-dev's versions.yaml. The profile is defined here so the contract
+# shape is ready, but it is not yet satisfiable — that is tracked as
+# baobab-dev implementation work (ADR-0001 section 2.8a), not a defect in
+# this schema.
+# ------------------------------------------------------------------------------
+
+profiles:
+
+  full:
+    description: >
+      Everything baobab-dev provides. Used by repositories that build and
+      run the full BAOBAB application stack (currently: nabhold/baobab only).
+    image_tag_pattern: "ghcr.io/nabhold/baobab-dev:{version}"
+    capability_domains:
+      - "platform"           # e.g. ubuntu base
+      - "languages"          # python, node, flutter
+      - "database"           # postgresql client
+      - "package_managers"   # uv, poetry, pnpm
+      - "utilities"          # task, ripgrep, fd, bat, eza, jq, yq, fzf, tree, unzip, zip, xz
+      - "development"        # docker, github_cli
+      - "security"           # cosign
+    source_domains_confirmed_present: true   # verified against versions.yaml
+                                              # at time of authoring
+
+  frontend:
+    description: >
+      Node/pnpm/frontend-tooling subset only. Used by repositories that build
+      customer-facing product frontends and do not need Python, Flutter, or
+      a PostgreSQL client locally (currently: nabhold/nabhold, zuribeans,
+      thamani, equator-estate).
+    image_tag_pattern: "ghcr.io/nabhold/baobab-dev:{version}-frontend"
+    capability_domains:
+      - "platform"                # shared base layer
+      - "languages.node"          # node only — NOT python, NOT flutter
+      - "package_managers.pnpm"   # pnpm only — NOT uv, NOT poetry
+      - "utilities"                # generic CLI tools, same subset as `full`
+      - "development.github_cli"  # git/gh — NOT necessarily docker
+      - "frontend_tooling"         # Turborepo, Playwright — see status note
+    source_domains_confirmed_present: false  # "frontend_tooling" domain and
+                                              # its contents do not yet exist
+                                              # in versions.yaml; see status
+                                              # note above
+    pending_additions_required_in_versions_yaml:
+      - "turborepo"
+      - "playwright"
+
+# ------------------------------------------------------------------------------
+# Required structure of a per-repository declaration
+# (`<repo>/.nabhold/environment.yaml`)
+#
+# This section defines what fields a declaration file MUST contain. It is
+# schema, not an example for any specific repository.
+# ------------------------------------------------------------------------------
+
+declaration_requirements:
+
+  schema:
+    required: true
+    fields: ["name", "version"]
+    description: "Identifies which version of THIS schema the declaration targets."
+
+  application:
+    required: true
+    fields:
+      name:
+        required: true
+        description: "Repository identity, e.g. 'baobab', 'zuribeans'."
+      entity_id:
+        required: false
+        description: >
+          For the four digital-estate repos, SHOULD reference the matching
+          `entity_id` from the legal-entity registry. Not applicable to
+          `baobab` itself (a platform, not a tenant).
+      version:
+        required: true
+        description: "Application/repo release version. NOT the environment version."
+
+  environment:
+    required: true
+    fields:
+      provider:
+        required: true
+        description: "MUST be 'baobab-dev'."
+      profile:
+        required: true
+        allowed_values: ["full", "frontend"]
+      minimum_version:
+        required: true
+        description: "Minimum baobab-dev release the repo can be developed against."
+      contract_minimum_version:
+        required: true
+        description: "Minimum version of THIS schema the declaration was written against."
+
+  compatibility_policy:
+    required: true
+    fields:
+      strict_runtime_versions:
+        required: true
+        type: "boolean"
+      allow_newer_patch_versions:
+        required: true
+        type: "boolean"
+      allow_newer_minor_versions:
+        required: true
+        type: "boolean"
+      allow_older_versions:
+        required: true
+        type: "boolean"
+    description: >
+      Carried forward unchanged from the original environment-contract draft.
+      Every declaration MUST state its own policy explicitly — none of these
+      default silently.
+
+  validation:
+    required: true
+    fields:
+      required_capabilities:
+        required: true
+        description: >
+          List of capability names (drawn from the declared profile's
+          `capability_domains`) that CI MUST verify before considering the
+          repository's environment compatible.
+
+# ------------------------------------------------------------------------------
+# Validation obligation
+# ------------------------------------------------------------------------------
+
+validator_obligations:
+  description: >
+    A repository's `.nabhold/environment.yaml` MUST be validated against
+    baobab-dev's `versions.lock`, filtered to the declared profile's
+    `capability_domains`, on every CI run that could affect environment
+    compatibility (at minimum: any change to the declaration file itself,
+    and any baobab-dev release matching the declared profile).
+  on_incompatibility: >
+    CI MUST fail with an explicit statement of which capability was
+    unsatisfied and what versions.lock actually provides — matching the
+    existing baobab-verify pattern of structural failure over masked
+    warnings (see baobab-dev's established "structural fixes over guards"
+    principle).
+  implementation_status: "not yet implemented — tracked for rollout step 2/3"
+
+# ------------------------------------------------------------------------------
+# Ownership
+# ------------------------------------------------------------------------------
+
+ownership:
+  contract_schema:
+    owner: "nabhold/shared"
+  toolchain_implementation:
+    owner: "nabhold/baobab-dev"
+  full_profile_declaration:
+    owner: "nabhold/baobab"
+  frontend_profile_declarations:
+    owner: "nabhold/nabhold, nabhold/zuribeans, nabhold/thamani, nabhold/equator-estate"
+
+# ------------------------------------------------------------------------------
+# Notes
+# ------------------------------------------------------------------------------
+
+notes:
+  - >
+    This schema does not hardcode Python 3.14, Node 24, or any other actual
+    version number. Those belong exclusively in baobab-dev's versions.yaml
+    and in each repository's own declaration file.
+  - >
+    The `frontend` profile is defined but not yet satisfiable — see the
+    status note under `profiles.frontend`. Do not mark any digital-estate
+    repo's declaration as CI-validated against this schema until Turborepo
+    and Playwright exist in baobab-dev's versions.yaml.
+  - >
+    If a repository's needs diverge from its profile's baseline (for example,
+    if one digital-estate repo later needs a capability the others don't),
+    that repository's own declaration file is the correct place to add it —
+    not a change to the shared profile baseline, which would silently affect
+    the other three repos.

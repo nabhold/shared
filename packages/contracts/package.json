@@ -1,0 +1,33 @@
+{
+  "name": "@nabhold/contracts-ts",
+  "version": "0.0.0",
+  "description": "Generated TypeScript contracts (gRPC via Protobuf, GraphQL via SDL) for Baobab/Nabhold interfaces. PLACEHOLDER ONLY — Trade Intelligence, Property Intelligence, and BIE schemas have not been defined yet; see ADR-0001.",
+  "private": false,
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "generate:proto": "buf generate",
+    "generate:graphql": "graphql-codegen --config codegen.ts",
+    "generate": "pnpm generate:proto && pnpm generate:graphql",
+    "build": "pnpm generate && tsup src/index.ts --format cjs,esm --dts",
+    "lint": "buf lint"
+  },
+  "dependencies": {
+    "ts-proto": "2.12.1",
+    "graphql": "17.0.2",
+    "@grpc/grpc-js": "1.14.4",
+    "google-protobuf": "4.0.2"
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "1.72.0",
+    "@graphql-codegen/cli": "7.3.1",
+    "@graphql-codegen/typescript": "6.1.0",
+    "tsup": "8.5.1",
+    "typescript": "7.0.2"
+  }
+}

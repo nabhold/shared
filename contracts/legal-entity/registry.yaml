@@ -1,0 +1,176 @@
+# ==============================================================================
+# NABHOLD GROUP AFRICA
+# Canonical Legal Entity Registry
+#
+# Target path: nabhold/shared/contracts/legal-entity/registry.yaml
+#
+# Purpose
+# -------
+# This is the single source of truth for legal-entity identity across every
+# Nabhold system. It exists to prevent the same entity acquiring different
+# names in different repositories (e.g. "thamani", "THAMANI", "thamani-global",
+# "THG", "tenant-002" all referring to the same company).
+#
+# Every downstream system MUST reference `id` from this file. No repository
+# may invent its own spelling of a legal-entity identifier.
+#
+# Consumers of this contract
+# ---------------------------
+#   nabhold/baobab           -> tenant.entity_id references an `id` below
+#   nabhold/infrastructure   -> resource ownership tags reference an `id` below
+#   nabhold/{nabhold,zuribeans,thamani,equator-estate}
+#                             -> each repo's own config declares which `id`
+#                                it represents (self-reference, exactly one)
+#
+# Governance tier
+# ----------------
+# This is a GOVERNANCE contract (see ADR-0001 section 2.5): it declares
+# identity and obligations, not implementation. It must never contain cloud
+# resource names, database connection strings, or infrastructure specifics.
+#
+# Versioning
+# ----------
+# The registry schema is versioned independently of any individual entity's
+# data. Adding a new entity is a MINOR schema change. Removing/renaming an
+# `id` that is already referenced elsewhere is a BREAKING change and requires
+# coordinated updates across baobab, infrastructure, and the affected
+# digital estate repo before merge.
+#
+# Data completeness
+# ------------------
+# Fields marked `null  # TBD` are intentionally left unpopulated. They must
+# be completed by an authoritative source (Legal / Company Secretarial) before
+# this contract is relied upon for compliance, billing, or regulatory purposes.
+# No value has been guessed or fabricated to fill these fields.
+#
+# Governing decision record: ADR-0001 (nabhold/shared/docs/adr/)
+# ==============================================================================
+
+schema:
+  name: "nabhold-legal-entity-registry"
+  version: "1.0"
+
+# ------------------------------------------------------------------------------
+# Entities
+# ------------------------------------------------------------------------------
+
+entities:
+
+  # ---------------------------------------------------------------------------
+  - id: "NABHOLD"
+    legal_name: "Nabhold Group Africa"
+    role: "holding_company"
+
+    jurisdiction: null            # TBD — pending Legal / Company Secretarial
+    registration_identifier: null # TBD — pending Legal / Company Secretarial
+
+    business_model: null          # not applicable — holding company, not an
+                                   # operating subsidiary
+
+    baobab_tenant: false          # Nabhold consumes no Baobab product; it is
+                                   # not a tenant of the platform it owns
+                                   # (see ADR-0001 section 2.1)
+
+    digital_estate:
+      repository: "nabhold/nabhold"
+      status: "planned"           # repository created, implementation pending
+
+    baobab_products: []           # intentionally empty — not a tenant
+
+  # ---------------------------------------------------------------------------
+  - id: "ZURIBEANS"
+    legal_name: "Zuribeans"
+    role: "subsidiary"
+
+    jurisdiction: null            # TBD
+    registration_identifier: null # TBD
+
+    business_model: "B2C"
+    baobab_tenant: true
+
+    digital_estate:
+      repository: "nabhold/zuribeans"
+      status: "planned"
+
+    baobab_products:
+      - product: "trade-intelligence"
+        confirmed: true            # confirmed by Chief Software Engineer,
+                                    # 2026-08-26
+
+    markets: []                    # populated as each per-TLD market app is
+                                    # launched inside the zuribeans monorepo;
+                                    # intentionally empty at contract inception
+
+  # ---------------------------------------------------------------------------
+  - id: "THAMANI-GLOBAL"
+    legal_name: "Thamani Global"
+    role: "subsidiary"
+
+    jurisdiction: null            # TBD
+    registration_identifier: null # TBD
+
+    business_model: "B2B"
+    baobab_tenant: true
+
+    digital_estate:
+      repository: "nabhold/thamani"
+      status: "planned"
+
+    baobab_products:
+      - product: "trade-intelligence"
+        confirmed: true            # confirmed by Chief Software Engineer,
+                                    # 2026-08-26
+
+    markets: []
+
+  # ---------------------------------------------------------------------------
+  - id: "EQUATOR-ESTATE"
+    legal_name: "Equator & Estate Co."
+    role: "subsidiary"
+
+    jurisdiction: null            # TBD
+    registration_identifier: null # TBD
+
+    business_model: "B2B2C"
+    baobab_tenant: true
+
+    digital_estate:
+      repository: "nabhold/equator-estate"
+      status: "planned"
+
+    baobab_products:
+      - product: "property-intelligence"
+        confirmed: false           # INFERRED, not yet explicitly confirmed —
+                                    # see ADR-0001 section 2.3, open item 3
+
+    markets: []
+
+# ------------------------------------------------------------------------------
+# Cross-cutting products
+#
+# Products consumed by more than one entity as a shared substrate rather than
+# a per-tenant capability are declared here, not repeated on every entity.
+# ------------------------------------------------------------------------------
+
+cross_cutting_products:
+
+  - product: "baobab-intelligence-engine"
+    short_name: "BIE"
+    consumed_by: "all_baobab_tenants"
+    confirmed: false               # INFERRED, not yet explicitly confirmed —
+                                    # see ADR-0001 section 2.3, open item 3
+
+# ------------------------------------------------------------------------------
+# Notes
+# ------------------------------------------------------------------------------
+
+notes:
+  - >
+    This registry declares identity, not infrastructure. It must not be
+    extended with cloud resource identifiers, connection strings, or
+    deployment topology — those belong in `nabhold/infrastructure`, which
+    references entities here by `id` only.
+  - >
+    "confirmed: false" markers are not placeholders to be silently flipped
+    to true. They must be updated only after explicit confirmation from an
+    authoritative source, per this project's evidence-before-action standard.

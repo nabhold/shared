@@ -1,0 +1,18 @@
+"""
+PLACEHOLDER CONTRACT — NOT A REAL PRODUCT SCHEMA
+
+Exists solely to prove the graphql-code-generator -> @nabhold/contracts-ts ->
+GHCR publish pipeline works end-to-end. Trade Intelligence, Property
+Intelligence, and BIE GraphQL schemas are intentionally absent — they have
+not been designed yet.
+
+Governing decision record: ADR-0001 (nabhold/shared/docs/adr/)
+"""
+
+type Query {
+  health: HealthStatus!
+}
+
+type HealthStatus {
+  ok: Boolean!
+}
