@@ -85,21 +85,20 @@ entities:
     jurisdiction: null            # TBD
     registration_identifier: null # TBD
 
-    business_model: "B2C"
+    business_model: "B2B"
     baobab_tenant: true
 
     digital_estate:
       repository: "nabhold/zuribeans"
-      status: "planned"
+      status: "active"
 
     baobab_products:
       - product: "trade-intelligence"
         confirmed: true            # confirmed by Chief Software Engineer,
                                     # 2026-08-26
 
-    markets: []                    # populated as each per-TLD market app is
-                                    # launched inside the zuribeans monorepo;
-                                    # intentionally empty at contract inception
+    markets: []                    # populated only after the canonical market,
+                                    # region and domain contract is approved
 
   # ---------------------------------------------------------------------------
   - id: "THAMANI-GLOBAL"

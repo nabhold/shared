@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed — pending reconciliation against CIO architecture document (not yet available to this ADR's author) |
+| **Status** | Accepted — amended 2026-08-30 for the approved Zuribeans B2B/Next.js direction |
 | **Date** | 2026-08-26 |
 | **Owner** | Chief Software Engineer, Nabhold Group Africa |
 | **Repository** | `nabhold/shared` (canonical home for this and future ADRs: `docs/adr/`) |
@@ -13,7 +13,7 @@
 
 ## 1. Context
 
-Nabhold Group Africa is a holding company with three operating subsidiaries — **Zuribeans** (B2C e-commerce), **Thamani Global** (B2B commodities trade), and **Equator & Estate Co.** (property) — plus the holding company's own corporate presence. Each subsidiary:
+Nabhold Group Africa is a holding company with three operating subsidiaries — **Zuribeans** (B2B green-coffee trade), **Thamani Global** (B2B commodities trade), and **Equator & Estate Co.** (property) — plus the holding company's own corporate presence. Each subsidiary:
 
 - is a distinct legal entity that must be able to **scale independently into new markets**, each under its **own TLD** (e.g. `zuribeans.co.za`, `zuribeans.co.uk`),
 - owns a **full, customer-facing digital estate** (not merely a marketing site) that consumes shared backend capability rather than duplicating it, and
@@ -56,7 +56,7 @@ flowchart TB
     STD --> SHARED["nabhold/shared"]
 
     ENT --> NAB["nabhold/nabhold<br/>(Nabhold digital estate)"]
-    ENT --> ZUR["nabhold/zuribeans<br/>(B2C e-commerce)"]
+    ENT --> ZUR["nabhold/zuribeans<br/>(B2B green-coffee trade)"]
     ENT --> THA["nabhold/thamani<br/>(B2B trade)"]
     ENT --> EQE["nabhold/equator-estate<br/>(property)"]
 
@@ -95,7 +95,7 @@ entities:
   - id: ZURIBEANS
     legal_name: "Zuribeans"
     role: subsidiary
-    business_model: B2C
+    business_model: B2B
     baobab_tenant: true
 
   - id: THAMANI-GLOBAL
@@ -126,27 +126,23 @@ This mapping determines GraphQL subgraph ownership (§2.5) and must be reconfirm
 
 ### 2.4 Digital estate repositories are full product monorepos
 
-Each of `nabhold/{zuribeans,thamani,equator-estate}` (and optionally `nabhold/nabhold` for its own site, though with a much smaller surface) is a **Turborepo workspace**:
+Each of `nabhold/{zuribeans,thamani,equator-estate}` owns an independently deployable digital estate. A repository may adopt a workspace or monorepo only when it actually contains multiple applications or shared packages; Turborepo is available in the standard frontend environment but is not mandatory for a single application.
 
 ```
 nabhold/zuribeans/
-├── turbo.json
 ├── package.json
-├── .npmrc                          # points @nabhold/* scope at GHCR
-├── apps/
-│   ├── za-storefront/              # Astro — market: South Africa
-│   └── uk-storefront/              # Astro — market: United Kingdom
-└── packages/
-    ├── brand-ui/                   # wraps @nabhold/ui-core with Zuribeans theme
-    └── local-utils/
+├── src/                             # Next.js App Router application
+├── docs/                            # estate-specific architecture and ADRs
+├── runtime/                         # deployable service requirements
+└── contracts.lock.yaml              # exact Shared and Trade dependencies
 ```
 
-- **Framework guidance by business model** (not mandated, but the default unless a subsidiary has a reason to deviate):
-  - Zuribeans (B2C, SEO/catalog-driven): **Astro**, islands hydrated only for cart/checkout.
+- **Framework guidance by estate needs** (not mandated across unrelated subsidiaries):
+  - Zuribeans (B2B catalogue and buying journeys): **Next.js App Router**, consuming the Medusa v2 Store API supplied by `nabhold/baobab-trade`.
   - Thamani Global (B2B, dashboard/forms-heavy, behind auth): **Next.js (App Router)**.
   - Equator & Estate (listings + transactional flows, mixed public/auth): **Next.js**, evaluated per app.
-- Each new market is a new `apps/<market>-storefront` inside the *same* subsidiary repo — this is what "scale independently into other markets" means structurally: a new folder + new domain binding, not a new repository.
-- Apps **never** import `@nabhold/ui-core` directly — they import their subsidiary's local `packages/brand-ui` wrapper, which themes the shared headless primitives. This is what keeps three very different brands consistent at the primitive level without forcing identical visual design.
+- A new market does not automatically require a new application. Market-to-region, sales-channel and domain mapping must first be defined by a canonical contract; application boundaries follow demonstrated deployment or experience differences rather than geography alone.
+- Shared UI packages remain optional contracts, not mandatory repository structure. An estate may introduce a local brand wrapper when it actually consumes shared headless primitives; Zuribeans currently owns its presentation components directly.
 
 ### 2.5 Interface contracts: two tiers, not one
 
@@ -241,15 +237,16 @@ Consistent with "one change at a time, committed files are ground truth":
 1. ~~Frontend dev-environment image~~ — **Resolved 2026-08-26**, see Amendment Log.
 2. Python contract-package versioning/publishing tool (candidate: `python-semantic-release`).
 3. Confirm Property Intelligence → Equator & Estate, and BIE-as-cross-cutting, per §2.3.
-4. Reconciliation against the CIO's architecture document once available — this ADR proceeds as **Proposed** in the interim, per explicit instruction, and must be revisited on receipt of that document.
-5. Exact market/app naming convention inside each subsidiary Turborepo (e.g. `apps/za-storefront` vs. `apps/zuribeans-za`).
+4. Reconciliation against the CIO's architecture document once available; accepted amendments remain authoritative until explicitly superseded.
+5. Canonical market-to-region, sales-channel and domain mapping for multi-market estates.
 
 ### 2.8a Development-environment contract: profile concept and naming (resolved)
 
 Both `baobab` and the four digital-estate repos need a development-environment contract — not just `baobab`. Rather than four independent declarations that can silently drift apart, the contract schema introduces a **profile** concept:
 
 - `full` — everything `baobab` needs (Python, Node, Flutter, PostgreSQL client, etc.), sourced from `baobab-dev`'s default build.
-- `frontend` — Node/pnpm/Turborepo/Playwright only, sourced from `baobab-dev`'s `--target frontend` stage (§2.8).
+- `frontend` — Node, pnpm and Turborepo, sourced from `baobab-dev`'s `--target frontend` stage (§2.8).
+- `frontend-e2e` — the CI-only browser profile extending `frontend` with Playwright and browser binaries; it is never the daily development declaration.
 
 Each consuming repository (`baobab`, `nabhold`, `zuribeans`, `thamani`, `equator-estate`) carries its own declaration at a **consistently named path across all five repos: `.nabhold/environment.yaml`** — superseding the earlier draft's `.baobab/environment.yaml` naming. Consistency here is what allows one generic validator in `nabhold/shared` to check all five repos the same way instead of five bespoke checks. The four frontend repos' declarations are expected to be short (`profile: frontend` + minimum `baobab-dev` version), not a full re-declaration of tooling versions.
 
