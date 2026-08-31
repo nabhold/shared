@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Nabhold Baobab Control Plane API
-  version: 1.0.0
+  version: 1.1.0
   description: Contract for tenant lifecycle management. Implementations live in nabhold/baobab-cp.
   license:
     name: Apache-2.0
@@ -9,11 +9,11 @@ info:
 servers:
   - url: https://control.nabhold.com/v1
     description: Production placeholder; activation requires an approved domain binding.
-security:
-  - oidc: [tenant:write]
 paths:
   /tenants:
     post:
+      security:
+        - adminOidc: [tenant:write]
       operationId: registerTenant
       summary: Register a tenant and start an idempotent provisioning operation
       parameters:
@@ -36,6 +36,34 @@ paths:
         "401": { description: Authentication required }
         "403": { description: Insufficient authority }
         "409": { description: Identifier conflict or incompatible idempotent replay }
+  /context/resolve:
+    post:
+      operationId: resolveTenantContext
+      summary: Resolve authoritative tenant and product-entitlement context from the authenticated principal
+      security:
+        - workloadOidc: [context:resolve]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./context-resolution.schema.json#/$defs/request
+      responses:
+        "200":
+          description: Active, entitled tenant context
+          headers:
+            Cache-Control:
+              schema: { type: string, const: "private, max-age=15" }
+          content:
+            application/json:
+              schema:
+                $ref: ./context-resolution.schema.json#/$defs/response
+        "400": { description: Invalid request }
+        "401": { description: Authentication required }
+        "403": { description: Unresolved tenant or insufficient entitlement }
+        "409": { description: Tenant lifecycle does not permit access }
 components:
   parameters:
     IdempotencyKey:
@@ -64,6 +92,11 @@ components:
         updated_at: { type: string, format: date-time }
         failure_code: { type: [string, "null"] }
   securitySchemes:
-    oidc:
+    adminOidc:
       type: openIdConnect
       openIdConnectUrl: https://identity.nabhold.com/.well-known/openid-configuration
+      description: Human administrator identity; issuer is environment-configured by the implementation.
+    workloadOidc:
+      type: openIdConnect
+      openIdConnectUrl: https://identity.nabhold.com/.well-known/openid-configuration
+      description: Short-lived workload or delegated identity token used only over the infrastructure-owned mTLS path.

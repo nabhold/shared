@@ -6,8 +6,19 @@ Human administrators authenticate through an external OIDC provider. Services
 use workload identities. JWTs use asymmetric signatures, short lifetimes,
 explicit issuer and audience validation, and key rotation through JWKS.
 
-The shared contract defines claims and validation requirements; cryptographic
-implementation remains in the consuming runtime.
+The canonical requirements are defined in
+[`security-policy.yaml`](../../contracts/control-plane/v1/security-policy.yaml)
+and the associated access-token schema. Tokens are limited to RS256 or ES256,
+must target the `baobab-control-plane` audience, and may live for no more than
+15 minutes. Cryptographic implementation remains in the consuming runtime.
+
+Human management operations require the `tenant:write` scope. Workload context
+resolution requires `context:resolve`. Identity and tenant headers supplied by
+callers are never authoritative.
+
+Mutual TLS terminates at the infrastructure-managed APISIX boundary. It adds
+transport-level workload authentication but does not replace the application
+token or its scope checks.
 
 ## Permission boundaries
 

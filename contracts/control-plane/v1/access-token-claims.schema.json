@@ -3,7 +3,7 @@
   "$id": "https://contracts.nabhold.com/control-plane/v1/access-token-claims.schema.json",
   "title": "Baobab control-plane access-token claims",
   "type": "object",
-  "required": ["iss", "sub", "aud", "exp", "iat", "jti", "scope"],
+  "required": ["iss", "sub", "aud", "exp", "iat", "jti", "scope", "actor_type"],
   "properties": {
     "iss": { "type": "string", "format": "uri" },
     "sub": { "type": "string", "minLength": 1, "maxLength": 255 },
@@ -22,7 +22,7 @@
       "pattern": "^(?:[a-z][a-z0-9.-]*:[a-z][a-z0-9.-]*)(?: (?:[a-z][a-z0-9.-]*:[a-z][a-z0-9.-]*))*$"
     },
     "tenant_id": { "$ref": "domain.schema.json#/$defs/tenantId" },
-    "actor_type": { "type": "string", "enum": ["human", "workload"] }
+    "actor_type": { "type": "string", "enum": ["human", "workload"] },
+    "azp": { "type": "string", "minLength": 1, "maxLength": 255 }
   }
 }
-
