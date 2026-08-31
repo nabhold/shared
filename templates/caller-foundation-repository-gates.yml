@@ -17,3 +17,4 @@ jobs:
     with:
       dockerfile: "Dockerfile"
       build_context: "."
+      dependency_review_enabled: false
