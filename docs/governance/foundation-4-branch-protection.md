@@ -18,3 +18,7 @@ The minimum ruleset must:
 The ruleset becomes enforceable after the repository's Foundation 4 pull
 request has merged and the `foundation` check has completed successfully at
 least once on `main`.
+
+Enable GitHub's dependency graph before setting
+`dependency_review_enabled: true` in the repository caller workflow. Trivy
+dependency scanning remains mandatory regardless of that repository setting.
