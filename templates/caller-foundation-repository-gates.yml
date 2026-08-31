@@ -16,3 +16,4 @@ jobs:
     uses: nabhold/shared/.github/workflows/foundation-repository-gates.yml@REPLACE_WITH_FULL_SHARED_COMMIT_SHA
     with:
       dockerfile: "Dockerfile"
+      build-context: "."

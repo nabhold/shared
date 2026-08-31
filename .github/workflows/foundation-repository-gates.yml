@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: "Dockerfile"
+      build-context:
+        description: Docker build context used when dockerfile exists.
+        required: false
+        type: string
+        default: "."
 
 permissions:
   contents: read
@@ -47,7 +52,7 @@ jobs:
           abort "Foundation 4 requires baobab-dev v1.2.6" unless minimum.start_with?("1.2.6")
 
           expected = profile == "frontend" ? "ghcr.io/nabhold/baobab-dev:1.2.6-frontend" : "ghcr.io/nabhold/baobab-dev:1.2.6"
-          devcontainer = File.read(devcontainer_path)
+          devcontainer = Dir.glob(".devcontainer/**/*").select { |path| File.file?(path) }.map { |path| File.read(path) }.join("\n")
           abort "devcontainer must use #{expected}" unless devcontainer.include?(expected)
 
           policy = declaration.fetch("compatibility_policy")
@@ -99,11 +104,22 @@ jobs:
           sudo install -m 0755 trivy /usr/local/bin/trivy
       - name: Scan repository dependencies and secrets
         run: trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 1 --skip-version-check .
-      - name: Build container for scanning
-        if: inputs.dockerfile != '' && hashFiles(inputs.dockerfile) != ''
+      - name: Detect container build
+        id: container
         env:
           DOCKERFILE: ${{ inputs.dockerfile }}
-        run: docker build --file "$DOCKERFILE" --tag foundation-scan:${{ github.sha }} .
+        run: |
+          if [[ -n "$DOCKERFILE" && -f "$DOCKERFILE" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build container for scanning
+        if: steps.container.outputs.enabled == 'true'
+        env:
+          DOCKERFILE: ${{ inputs.dockerfile }}
+          BUILD_CONTEXT: ${{ inputs.build-context }}
+        run: docker build --file "$DOCKERFILE" --tag foundation-scan:${{ github.sha }} "$BUILD_CONTEXT"
       - name: Scan built container
-        if: inputs.dockerfile != '' && hashFiles(inputs.dockerfile) != ''
+        if: steps.container.outputs.enabled == 'true'
         run: trivy image --scanners vuln,secret --severity HIGH,CRITICAL --exit-code 1 --skip-version-check foundation-scan:${{ github.sha }}
