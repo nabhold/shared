@@ -23,6 +23,8 @@ Those gates perform dependency review, source/dependency/secret scanning,
 conditional container build scanning, environment-contract validation, and
 reproducibility checks. Branch protection remains a GitHub repository setting;
 the required check is named `foundation` and must be required on `main`.
+Administrators should apply the documented [Foundation 4 branch-protection
+ruleset](docs/governance/foundation-4-branch-protection.md).
 
 ---
 
