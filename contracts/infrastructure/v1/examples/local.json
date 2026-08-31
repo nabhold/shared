@@ -1,0 +1,9 @@
+{
+  "environment": "local",
+  "region": "local",
+  "classification": "developer_managed",
+  "services": ["apisix", "postgresql", "rabbitmq", "redis", "otel_collector"],
+  "data_residency": {
+    "allowed_regions": ["local"]
+  }
+}

@@ -1,0 +1,42 @@
+id: nabhold.control-plane.tenant-provisioning.v1
+initial_state: requested
+terminal_states:
+  - cancelled
+states:
+  requested:
+    transitions:
+      accept: accepted
+      cancel: cancelled
+  accepted:
+    transitions:
+      start: provisioning
+      cancel: cancelled
+  provisioning:
+    transitions:
+      reconcile: reconciling
+      fail: failed
+  reconciling:
+    transitions:
+      confirm: active
+      retry: provisioning
+      fail: failed
+  active:
+    transitions:
+      suspend: suspended
+  suspended:
+    transitions:
+      reactivate: provisioning
+      decommission: decommissioning
+  failed:
+    transitions:
+      retry: provisioning
+      cancel: cancelled
+  decommissioning:
+    transitions:
+      confirm: cancelled
+      fail: failed
+invariants:
+  - Transitions require optimistic revision matching.
+  - Repeated commands with the same idempotency key return the original operation.
+  - External resources are observed before a transition is confirmed.
+  - Every accepted transition writes an audit record and outbox event atomically.

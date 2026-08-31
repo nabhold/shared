@@ -1,0 +1,19 @@
+{
+  "specversion": "1.0",
+  "id": "6f830caf-f4d8-42f2-97e3-01443cbc3777",
+  "type": "com.nabhold.control-plane.tenant.provisioning-started.v1",
+  "source": "/baobab-cp/tenants",
+  "subject": "tenant/zuribeans_za",
+  "time": "2026-08-31T12:00:00Z",
+  "datacontenttype": "application/json",
+  "correlation_id": "cf71af4b-e547-4494-bad5-0b5a9fb6cb11",
+  "causation_id": null,
+  "tenant_id": "zuribeans_za",
+  "data": {
+    "operation_id": "bb5e2e28-51e8-476b-b9cc-d4e94ced3d3d",
+    "tenant_id": "zuribeans_za",
+    "isolation_strategy": "schema_per_tenant",
+    "revision": 1
+  }
+}
+
