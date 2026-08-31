@@ -1,6 +1,6 @@
 # NABHOLD Shared
 
-> **Organisation-wide shared workflows, pipelines, automation, configuration, and engineering standards for the NABHOLD GitHub ecosystem.**
+> **Organisation-wide shared workflows, pipelines, contracts, packages, automation, configuration, and engineering standards for the NABHOLD GitHub ecosystem.**
 
 **Repository:** `nabhold/shared`
 **Visibility:** Private
@@ -13,9 +13,9 @@
 
 `nabhold/shared` is the central repository for **reusable engineering infrastructure across the NABHOLD organisation**.
 
-It exists to prevent individual repositories from independently reinventing the same CI/CD pipelines, GitHub Actions workflows, automation scripts, security controls, configuration patterns, and operational conventions.
+It exists to prevent individual repositories from independently reinventing the same CI/CD pipelines, GitHub Actions workflows, automation scripts, security controls, configuration patterns, operational conventions, API contracts, data schemas, and common libraries.
 
-The repository provides a controlled foundation that can be consumed by NABHOLD projects, products, platforms, and subsidiaries.
+The repository provides a controlled foundation that can be consumed by NABHOLD projects, products, platforms, and subsidiaries — both as **importable code** (via reusable workflows, composite actions, and versioned packages) and as **agreed interfaces** (via contracts and schemas that multiple services and repositories depend on).
 
 The principle is simple:
 
@@ -29,87 +29,92 @@ This repository should therefore be treated as **organisation infrastructure**, 
 
 As the NABHOLD technology estate grows, individual repositories will inevitably need many of the same capabilities:
 
-* Continuous Integration
-* Continuous Deployment
-* Documentation deployment
-* GitHub Pages deployment
-* Python dependency management
-* JavaScript/TypeScript builds
-* Docker image builds
-* Security scanning
-* Dependency auditing
-* Code quality checks
-* Release automation
-* Version management
-* Artifact handling
-* Infrastructure validation
-* Pull-request validation
-* Repository hygiene
-* Dependency updates
-* Supply-chain security
-* Environment validation
-* Scheduled maintenance
-* Notifications and operational automation
+- Continuous Integration
+- Continuous Deployment
+- Documentation deployment
+- GitHub Pages deployment
+- Python dependency management
+- JavaScript/TypeScript builds
+- Docker image builds
+- Security scanning
+- Dependency auditing
+- Code quality checks
+- Release automation
+- Version management
+- Artifact handling
+- Infrastructure validation
+- Pull-request validation
+- Repository hygiene
+- Dependency updates
+- Supply-chain security
+- Environment validation
+- Scheduled maintenance
+- Notifications and operational automation
 
-Copying these workflows from repository to repository creates a predictable problem:
+They will also inevitably need to **agree on shapes**, not just processes:
 
-```text
+- What a tenant, user, or audit event looks like as JSON
+- What an API error response looks like
+- What fields a log line or a metric must carry
+- What a service's public interface promises to callers
+
+Copying workflows — or re-deriving interfaces — from repository to repository creates a predictable problem:
+
+```
 Repository A ──┐
 Repository B ──┤
-Repository C ──┼──> Duplicated CI/CD logic
+Repository C ──┼──> Duplicated CI/CD logic AND divergent interfaces
 Repository D ──┤
 Repository E ──┘
 ```
 
-Over time, the implementations diverge.
+Over time, the implementations diverge. One repository gets a security improvement. Another remains on an older action. A third uses a different Python version. A fourth has subtly different permissions. One service's error responses use `error_code`; another uses `code`. One service's audit log omits the actor's tenant ID.
 
-One repository gets a security improvement. Another remains on an older action. A third uses a different Python version. A fourth has subtly different permissions.
-
-That is technical debt disguised as configuration.
+That is technical debt disguised as configuration — and, in the case of contracts, technical debt disguised as an API.
 
 The `shared` repository exists to establish a common foundation:
 
-```text
-                    ┌──────────────────────┐
-                    │    NABHOLD Shared    │
-                    │                      │
-                    │ Workflows             │
-                    │ Pipelines             │
-                    │ Actions               │
-                    │ Scripts               │
-                    │ Standards             │
-                    │ Security Controls     │
-                    │ Templates             │
-                    └──────────┬───────────┘
-                               │
-             ┌─────────────────┼─────────────────┐
-             │                 │                 │
-             ▼                 ▼                 ▼
-       ┌──────────┐      ┌──────────┐      ┌──────────┐
-       │ Baobab   │      │ ZuriBeans│      │ Other    │
-       │ Platform │      │          │      │ Projects │
-       └──────────┘      └──────────┘      └──────────┘
+```
+             ┌────────────────────────────────────┐
+             │           NABHOLD Shared            │
+             │                                      │
+             │ Workflows        API Contracts        │
+             │ Pipelines        Data Schemas         │
+             │ Actions          Event Definitions     │
+             │ Scripts          Packages (TS/JS)      │
+             │ Standards        Observability Specs   │
+             │ Security Controls   Compliance Schemas │
+             │ Templates        IaC Modules           │
+             └──────────────────┬───────────────────┘
+                                 │
+      ┌──────────────────────────┼──────────────────────────┐
+      │                          │                          │
+      ▼                          ▼                          ▼
+┌──────────┐              ┌──────────┐              ┌──────────┐
+│ Baobab   │              │ ZuriBeans│              │ Other    │
+│ Platform │              │          │              │ Projects │
+└──────────┘              └──────────┘              └──────────┘
 ```
 
 ---
 
 # Objectives
 
-The repository has six primary objectives.
+The repository has eight primary objectives.
 
 ## 1. Standardisation
 
 Provide common implementation patterns for recurring engineering tasks.
 
-Repositories should not need to invent their own CI/CD architecture unless there is a legitimate project-specific requirement.
+Repositories should not need to invent their own CI/CD architecture, error format, or logging shape unless there is a legitimate project-specific requirement.
 
 ---
 
 ## 2. Reuse
 
-Enable repositories throughout NABHOLD to consume common workflows and automation without copying implementation code.
+Enable repositories throughout NABHOLD to consume common workflows, automation, contracts, and packages without copying implementation code or re-deriving interfaces from scratch.
 
-Where GitHub supports reusable workflows, those should generally be preferred over duplication.
+Where GitHub supports reusable workflows, those should generally be preferred over duplication. Where a data shape or API interface is consumed by more than one repository, it should be defined once here.
 
 ---
 
@@ -117,15 +122,15 @@ Where GitHub supports reusable workflows, those should generally be preferred ov
 
 Centralise security-conscious implementation patterns, particularly around:
 
-* GitHub Actions permissions
-* Immutable action pinning
-* Dependency management
-* Secret handling
-* OIDC authentication
-* Artifact management
-* Supply-chain security
-* Container security
-* Dependency vulnerability scanning
+- GitHub Actions permissions
+- Immutable action pinning
+- Dependency management
+- Secret handling
+- OIDC authentication
+- Artifact management
+- Supply-chain security
+- Container security
+- Dependency vulnerability scanning
 
 Security improvements made here should be capable of benefiting multiple repositories.
 
@@ -133,9 +138,9 @@ Security improvements made here should be capable of benefiting multiple reposit
 
 ## 4. Maintainability
 
-Reduce the number of independently maintained workflow implementations.
+Reduce the number of independently maintained workflow implementations and independently maintained copies of the same interface.
 
-A change to a common process should ideally require changing one centrally maintained implementation rather than dozens of repositories.
+A change to a common process, error shape, or event schema should ideally require changing one centrally maintained implementation rather than dozens of repositories.
 
 ---
 
@@ -143,15 +148,16 @@ A change to a common process should ideally require changing one centrally maint
 
 Establish organisation-wide conventions for how NABHOLD repositories:
 
-* build;
-* test;
-* package;
-* release;
-* deploy;
-* document;
-* scan;
-* version; and
-* maintain software.
+- build;
+- test;
+- package;
+- release;
+- deploy;
+- document;
+- scan;
+- version;
+- classify and handle data; and
+- maintain software.
 
 ---
 
@@ -159,9 +165,21 @@ Establish organisation-wide conventions for how NABHOLD repositories:
 
 Make the correct engineering approach the easiest approach.
 
-The repository should provide **paved roads**, not bureaucratic obstacles.
+The repository should provide **paved roads**, not bureaucratic obstacles. Project teams should be able to adopt established engineering practices — and established interfaces — with minimal configuration.
 
-Project teams should be able to adopt established engineering practices with minimal configuration.
+---
+
+## 7. Interface Consistency
+
+Ensure that services and repositories which need to talk to one another, or to be operated the same way, agree on the same shapes: API contracts, event payloads, error responses, and identifiers.
+
+A consumer of a NABHOLD service should be able to rely on the same conventions regardless of which service, repository, or team produced it.
+
+---
+
+## 8. Data & Compliance Governance
+
+Provide a common vocabulary for data classification, audit logging, and regulatory obligations (including South African requirements such as POPIA) so that compliance posture does not depend on each repository independently reinventing it.
 
 ---
 
@@ -173,24 +191,24 @@ The repository may contain organisation-wide resources in the following categori
 
 Reusable workflows for common repository operations, such as:
 
-* Python CI
-* Node.js / TypeScript CI
-* Flutter CI
-* Django CI
-* FastAPI CI
-* Docker builds
-* Container publishing
-* Documentation builds
-* GitHub Pages deployment
-* Release workflows
-* Pull-request validation
-* Scheduled maintenance
-* Security scanning
-* Dependency auditing
+- Python CI
+- Node.js / TypeScript CI
+- Flutter CI
+- Django CI
+- FastAPI CI
+- Docker builds
+- Container publishing
+- Documentation builds
+- GitHub Pages deployment
+- Release workflows
+- Pull-request validation
+- Scheduled maintenance
+- Security scanning
+- Dependency auditing
 
 Example:
 
-```yaml
+```
 jobs:
   ci:
     uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
@@ -204,13 +222,13 @@ Where a reusable workflow is not appropriate, common task-level operations may b
 
 Examples include:
 
-* installing `uv`;
-* configuring Python;
-* configuring Node;
-* authenticating to registries;
-* validating repository structure;
-* generating release metadata;
-* running security checks.
+- installing `uv`;
+- configuring Python;
+- configuring Node;
+- authenticating to registries;
+- validating repository structure;
+- generating release metadata;
+- running security checks.
 
 ---
 
@@ -220,12 +238,85 @@ Organisation-wide shell, Python, or other automation scripts may be maintained h
 
 Scripts should remain:
 
-* deterministic;
-* documented;
-* testable;
-* portable where practical;
-* dependency-conscious; and
-* safe to execute in CI.
+- deterministic;
+- documented;
+- testable;
+- portable where practical;
+- dependency-conscious; and
+- safe to execute in CI.
+
+---
+
+## API & Interface Contracts
+
+`contracts/` holds the agreed shapes that more than one repository or service depends on. This is what keeps independently developed services interoperable without runtime coordination.
+
+Contracts may include:
+
+- **OpenAPI / Swagger specifications** for any service consumed by another repository or an external client.
+- **AsyncAPI specifications** for event and message payloads (queue/topic contracts), once more than one service publishes or consumes events.
+- **JSON Schema definitions** for shared data shapes — e.g. tenant object, user object, audit event.
+- **GraphQL schema fragments and shared types**, where applicable.
+- **gRPC / Protocol Buffer definitions**, for service-to-service calls that require them.
+- **Standard error-response contracts** — a single agreed shape (code, message, field-level errors) for API errors across every NABHOLD service, plus a namespaced error-code registry.
+- **Identifier and claim contracts** — JWT claim shapes, OIDC scope definitions, tenant/session object shape.
+
+A contract is a promise to consumers. Changing one is equivalent to changing a public API and must follow the same versioning and backwards-compatibility discipline as a reusable workflow (see [Design Principles](#design-principles) and [Versioning Strategy](#versioning-strategy)).
+
+---
+
+## Shared Packages
+
+`packages/` is a pnpm/Turborepo-managed workspace of versioned, publishable TypeScript/JavaScript packages consumed by NABHOLD repositories. Candidates include:
+
+- `@nabhold/eslint-config`, `@nabhold/tsconfig`, `@nabhold/prettier-config` — organisation-wide lint, type-checking, and formatting baselines.
+- `@nabhold/types` — shared TypeScript types generated from, or hand-aligned with, the contracts in `contracts/`.
+- `@nabhold/api-client` — a typed client for calling NABHOLD services, generated from their OpenAPI contracts where practical.
+- `@nabhold/ui-tokens` — shared design tokens (colour, spacing, typography) for future frontend and mobile work.
+- Small, dependency-conscious utility packages (date/time helpers, validators, tenant-context helpers) that would otherwise be copy-pasted between repositories.
+
+A package belongs here only once a second consumer genuinely needs it — see [Relationship With Product-Level Shared Directories](#relationship-with-product-level-shared-directories).
+
+---
+
+## Observability Contracts
+
+Shared specifications so that logs, metrics, and traces are interpretable the same way regardless of which service produced them:
+
+- Structured logging schema — required fields (timestamp, service, tenant, correlation ID, severity) and their names.
+- Metric-naming conventions.
+- Trace-context propagation standards.
+- OpenTelemetry semantic-convention extensions specific to NABHOLD, where the standard conventions are insufficient.
+
+---
+
+## Compliance & Data Contracts
+
+Shared vocabulary and schemas that support regulatory and governance obligations across the organisation:
+
+- A data-classification taxonomy (e.g. public / internal / confidential / restricted, with explicit PII handling tiers).
+- A standardised audit-log event schema, so that "who did what, to what, when" is captured the same way in every service — this is both an engineering convenience and part of the organisation's POPIA compliance posture.
+- Common validation rules and enums relevant to the jurisdictions NABHOLD operates in (e.g. South African ID number and phone number formats, currency and locale codes).
+
+---
+
+## Infrastructure-as-Code Modules
+
+Reusable Terraform modules and related infrastructure definitions, so that infrastructure patterns are not re-derived per repository once more than one deployable service exists:
+
+- Common modules (VPC, RDS, S3, ECS/EKS patterns).
+- Base Kubernetes manifests / Helm chart templates.
+- Environment-promotion patterns (distinct from environment-specific *values*, which must never live here — see [What Does *Not* Belong Here](#what-does-not-belong-here)).
+
+---
+
+## Testing Contracts
+
+Assets that let repositories verify they still honour the contracts above without full end-to-end integration:
+
+- Consumer-driven contract tests (e.g. Pact-style) between services, once more than one service calls another.
+- Shared test fixtures and mock-data generators aligned with the schemas in `contracts/`.
+- Shared load-testing scripts, where genuinely reusable.
 
 ---
 
@@ -233,14 +324,14 @@ Scripts should remain:
 
 Common configuration may include:
 
-* Dependabot configuration patterns;
-* CodeQL configuration;
-* security scanning configuration;
-* linting configuration;
-* repository metadata;
-* release configuration;
-* workflow configuration;
-* automation configuration.
+- Dependabot configuration patterns;
+- CodeQL configuration;
+- security scanning configuration;
+- linting configuration;
+- repository metadata;
+- release configuration;
+- workflow configuration;
+- automation configuration.
 
 Project-specific configuration should remain in the consuming repository.
 
@@ -250,14 +341,15 @@ Project-specific configuration should remain in the consuming repository.
 
 The repository may provide templates for:
 
-* workflows;
-* issue forms;
-* pull requests;
-* release processes;
-* security reporting;
-* repository bootstrapping;
-* documentation;
-* development environments.
+- workflows;
+- issue forms;
+- pull requests;
+- release processes;
+- security reporting;
+- repository bootstrapping;
+- documentation;
+- development environments;
+- new-service scaffolding (e.g. a generalised equivalent of a per-project `scaffold_*.py` script).
 
 Templates should be used where central reuse is not technically appropriate.
 
@@ -283,6 +375,10 @@ Product-specific documentation belongs in the product repository.
 
 A workflow that genuinely depends on unique project architecture should remain with that project.
 
+### Single-consumer contracts or types
+
+An API shape, schema, or type used by exactly one repository is not yet a shared contract — it should stay local until a second consumer needs it (see below).
+
 ### Secrets
 
 Secrets must **never** be committed to this repository.
@@ -293,7 +389,22 @@ API keys, passwords, private certificates, tokens, and other credentials must ne
 
 ### Environment-specific configuration
 
-Configuration containing environment-specific operational values should normally remain outside this repository and be supplied through appropriate GitHub, cloud, or infrastructure mechanisms.
+Configuration containing environment-specific operational values should normally remain outside this repository and be supplied through appropriate GitHub, cloud, or infrastructure mechanisms. This includes IaC *values* (account IDs, environment-specific sizing) as distinct from the reusable *modules* themselves.
+
+---
+
+# Relationship With Product-Level Shared Directories
+
+Individual product repositories (for example `baobab/shared/`) may maintain their own internal `shared/` directory for APIs, contracts, schemas, and utilities used *within that repository's own services*.
+
+That is expected and correct — not everything needs to be an organisation-wide concern on day one.
+
+A contract, schema, or package should graduate from a product-level `shared/` into `nabhold/shared` when, and only when:
+
+1. **A second repository** — not merely a second service inside the same repository — genuinely needs it; and
+2. The interface is stable enough to accept the versioning and backwards-compatibility discipline described in this document.
+
+Until both conditions are met, the asset should remain local. Promoting something too early creates coordination overhead without a second real consumer to justify it; promoting it too late causes silent, divergent copies to accumulate. When in doubt, leave it local and revisit once a second consumer appears.
 
 ---
 
@@ -301,7 +412,7 @@ Configuration containing environment-specific operational values should normally
 
 ## DRY — Don't Repeat Yourself
 
-Common behaviour should have one authoritative implementation wherever practical.
+Common behaviour — and common interfaces — should have one authoritative implementation wherever practical.
 
 ---
 
@@ -311,7 +422,7 @@ Reusable workflows must assume that repositories should operate under the princi
 
 For example:
 
-```yaml
+```
 permissions:
   contents: read
 ```
@@ -332,21 +443,21 @@ regardless of source.
 
 Avoid:
 
-```yaml
+```
 uses: actions/checkout@v4
 ```
 
-```yaml
+```
 uses: nabhold/shared/.github/workflows/python-ci.yml@v1
 ```
 
 Prefer:
 
-```yaml
+```
 uses: actions/checkout@<40-character-commit-sha> # v4.x.x
 ```
 
-```yaml
+```
 uses: nabhold/shared/.github/workflows/python-ci.yml@<40-character-commit-sha> # v1.x.x
 ```
 
@@ -357,13 +468,13 @@ listing or a previous PR — see `templates/caller-*.yml` for examples of
 this comment style in practice.
 
 A repository can enforce this automatically in CI rather than relying on
-review alone — see
-[`enforce-action-pinning.yml`](.github/workflows/enforce-action-pinning.yml)
-and `templates/caller-enforce-action-pinning.yml`. This repository dogfoods
-its own check via [`ci.yml`](.github/workflows/ci.yml), which calls
-`enforce-action-pinning.yml` locally on every push/PR touching
-`.github/workflows/` or `.github/actions/` — nothing here is exempt just
+review alone — see [`enforce-action-pinning.yml`](https://github.com/nabhold/shared/blob/main/.github/workflows/enforce-action-pinning.yml) and `templates/caller-enforce-action-pinning.yml`. This repository dogfoods
+its own check via [`ci.yml`](https://github.com/nabhold/shared/blob/main/.github/workflows/ci.yml), which calls `enforce-action-pinning.yml` locally on every push/PR touching `.github/workflows/` or `.github/actions/` — nothing here is exempt just
 because it's the source of the policy rather than a consumer of it.
+
+Published packages under `packages/` follow the analogous discipline for
+consumers: pin to an exact published version, not a floating range, for
+anything security- or interface-sensitive.
 
 This provides both:
 
@@ -382,28 +493,25 @@ rather than it happening invisibly.
 Dependabot configuration cannot be centralized the way reusable
 workflows/actions can. `.github/dependabot.yml` is read directly by
 GitHub's Dependabot service at that literal path in each repository —
-there's no `workflow_call`-equivalent import mechanism, and no `uses:`
-syntax a repo's config can reference to pull in another repo's config.
+there's no `workflow_call`-equivalent import mechanism, and no `uses:` syntax a repo's config can reference to pull in another repo's config.
 Given that constraint, this repository provides the closest practical
 equivalent:
 
-- [`templates/dependabot.yml`](templates/dependabot.yml) — the canonical
-  config, copied into a consuming repo's `.github/dependabot.yml` and
-  adjusted for TODOs (timezone, default branch).
-- [`enforce-dependabot-config.yml`](.github/workflows/enforce-dependabot-config.yml)
-  — a reusable **workflow** (this part *can* use `workflow_call`, since
-  it's an Actions check, not a Dependabot config) that validates a
-  consuming repo's actual `.github/dependabot.yml` still satisfies the
-  org's structural requirements — `version: 2`, a `github-actions`
-  ecosystem entry present, and every declared entry having a schedule,
-  an open-PR limit, labels, and a commit-message prefix. It deliberately
-  does not enforce exact values (schedule cadence, label wording,
-  timezone) since those legitimately vary by team; only structural
-  completeness is checked. Adopt it via
-  `templates/caller-enforce-dependabot-config.yml`.
+- [`templates/dependabot.yml`](https://github.com/nabhold/shared/blob/main/templates/dependabot.yml) — the canonical
+config, copied into a consuming repo's `.github/dependabot.yml` and
+adjusted for TODOs (timezone, default branch).
+- [`enforce-dependabot-config.yml`](https://github.com/nabhold/shared/blob/main/.github/workflows/enforce-dependabot-config.yml) — a reusable **workflow** (this part *can* use `workflow_call`, since
+it's an Actions check, not a Dependabot config) that validates a
+consuming repo's actual `.github/dependabot.yml` still satisfies the
+org's structural requirements — `version: 2`, a `github-actions` ecosystem entry present, and every declared entry having a schedule,
+an open-PR limit, labels, and a commit-message prefix. It deliberately
+does not enforce exact values (schedule cadence, label wording,
+timezone) since those legitimately vary by team; only structural
+completeness is checked. Adopt it via
+`templates/caller-enforce-dependabot-config.yml`.
 
 This repository dogfoods that check too, via the `dependabot-config` job
-in [`ci.yml`](.github/workflows/ci.yml).
+in [`ci.yml`](https://github.com/nabhold/shared/blob/main/.github/workflows/ci.yml).
 
 ---
 
@@ -411,17 +519,17 @@ in [`ci.yml`](.github/workflows/ci.yml).
 
 Shared infrastructure is consumed by people who did not necessarily write it.
 
-Prefer straightforward workflows over clever abstractions.
+Prefer straightforward workflows, contracts, and packages over clever abstractions.
 
-A few extra lines of YAML are cheaper than several hours of debugging an opaque abstraction.
+A few extra lines of YAML — or a slightly more verbose schema — are cheaper than several hours of debugging an opaque abstraction.
 
 ---
 
 ## Backwards Compatibility
 
-Reusable workflows are APIs.
+Reusable workflows are APIs. So are contracts, and so are published packages.
 
-Changing their inputs, outputs, behaviour, permissions, or assumptions can break downstream repositories.
+Changing their inputs, outputs, behaviour, permissions, fields, or assumptions can break downstream repositories.
 
 Changes must therefore be treated with the same care as changes to a public software interface.
 
@@ -429,13 +537,14 @@ Changes must therefore be treated with the same care as changes to a public soft
 
 ## Version Everything
 
-Reusable workflows and actions should be versioned.
+Reusable workflows, actions, contracts, and packages should be versioned.
 
 Consumers should preferably reference a stable major release line — but,
 per the [Immutable Dependencies](#immutable-dependencies) policy, pinned to
-that release's commit SHA rather than the floating tag:
+that release's commit SHA (for workflows/actions) or exact version (for
+packages) rather than the floating tag or range:
 
-```yaml
+```
 uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
 ```
 
@@ -448,9 +557,9 @@ Breaking changes should result in a new major version.
 
 # Versioning Strategy
 
-Shared workflows should follow semantic-versioning principles where practical.
+Shared workflows, contracts, and packages should follow semantic-versioning principles where practical.
 
-```text
+```
 MAJOR.MINOR.PATCH
 ```
 
@@ -460,12 +569,15 @@ Breaking interface or behavioural changes.
 
 Examples:
 
-* removed input;
-* renamed input;
-* changed required secret;
-* changed expected artifact;
-* incompatible runner;
-* changed output contract.
+- removed input;
+- renamed input;
+- changed required secret;
+- changed expected artifact;
+- incompatible runner;
+- changed output contract;
+- removed or renamed a contract field;
+- changed a field's type or meaning;
+- removed a package export.
 
 ### MINOR
 
@@ -473,9 +585,11 @@ Backward-compatible functionality.
 
 Examples:
 
-* new optional input;
-* additional validation;
-* additional supported runtime.
+- new optional input;
+- additional validation;
+- additional supported runtime;
+- new optional contract field;
+- new package export.
 
 ### PATCH
 
@@ -483,10 +597,11 @@ Backward-compatible fixes.
 
 Examples:
 
-* corrected shell logic;
-* dependency update;
-* documentation correction;
-* security fix that does not change the interface.
+- corrected shell logic;
+- dependency update;
+- documentation correction;
+- security fix that does not change the interface;
+- contract description/documentation correction that does not change the schema.
 
 For reusable workflows, major-version tags (`v1`, `v2`, ...) are still cut
 and maintained, and remain the human-readable way to talk about a release
@@ -494,7 +609,7 @@ line — but per the [Immutable Dependencies](#immutable-dependencies) policy,
 the reference actually checked into a caller's workflow file must resolve
 that tag to its full-length commit SHA at the time of pinning:
 
-```yaml
+```
 uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
 ```
 
@@ -503,11 +618,15 @@ to pick up new patch/minor releases within the same major line; Dependabot
 (configured in this repository, see `.github/dependabot.yml`) opens these
 bump PRs automatically once a tag exists to track.
 
+Contracts and packages follow the same major/minor/patch discipline, with
+`changeset-config.json` driving versioning and changelog generation for
+the `packages/` workspace.
+
 ---
 
 # Security Model
 
-Because this repository contains infrastructure capable of affecting multiple repositories, it should be considered **high-value internal infrastructure**.
+Because this repository contains infrastructure capable of affecting multiple repositories — including the interfaces they depend on to interoperate — it should be considered **high-value internal infrastructure**.
 
 Changes must therefore receive appropriate review.
 
@@ -515,16 +634,21 @@ Changes must therefore receive appropriate review.
 
 Shared workflows should:
 
-* use least-privilege permissions;
-* avoid unnecessary secrets;
-* prefer OIDC over long-lived cloud credentials where supported;
-* pin third-party actions;
-* validate external inputs;
-* avoid executing untrusted pull-request content with privileged credentials;
-* avoid exposing secrets to forked pull requests;
-* minimise write permissions;
-* avoid unnecessary network access;
-* document security-sensitive behaviour.
+- use least-privilege permissions;
+- avoid unnecessary secrets;
+- prefer OIDC over long-lived cloud credentials where supported;
+- pin third-party actions;
+- validate external inputs;
+- avoid executing untrusted pull-request content with privileged credentials;
+- avoid exposing secrets to forked pull requests;
+- minimise write permissions;
+- avoid unnecessary network access;
+- document security-sensitive behaviour.
+
+Shared contracts and packages should additionally:
+
+- avoid encoding secrets, credentials, or environment-specific values as example data;
+- treat any PII-bearing field in a schema as requiring the classification tier defined in the compliance contracts, and document it as such.
 
 ---
 
@@ -534,17 +658,17 @@ Secrets must never be committed to the repository.
 
 Use the appropriate GitHub mechanism:
 
-* organisation secrets;
-* repository secrets;
-* environment secrets;
-* GitHub OIDC;
-* external secret managers.
+- organisation secrets;
+- repository secrets;
+- environment secrets;
+- GitHub OIDC;
+- external secret managers.
 
 Reusable workflows must explicitly document any secrets they expect.
 
 Example:
 
-```yaml
+```
 on:
   workflow_call:
     secrets:
@@ -562,7 +686,7 @@ Permissions should be explicitly declared.
 
 For example:
 
-```yaml
+```
 permissions:
   contents: read
 ```
@@ -577,7 +701,7 @@ Avoid relying on implicit repository-level defaults.
 
 The exact structure may evolve, but the repository should generally follow a predictable layout:
 
-```text
+```
 shared/
 ├── .github/
 │   ├── workflows/
@@ -593,8 +717,33 @@ shared/
 │   ├── ISSUE_TEMPLATE/
 │   └── dependabot.yml
 │
-├── actions/
-│   └── <organisation-actions>/
+├── contracts/
+│   ├── openapi/
+│   ├── asyncapi/
+│   ├── schemas/
+│   │   ├── errors/
+│   │   ├── identity/
+│   │   └── audit/
+│   └── graphql/
+│
+├── packages/
+│   ├── eslint-config/
+│   ├── tsconfig/
+│   ├── types/
+│   ├── api-client/
+│   └── ui-tokens/
+│
+├── observability/
+│   ├── logging/
+│   ├── metrics/
+│   └── tracing/
+│
+├── compliance/
+│   ├── classification/
+│   └── audit-schema/
+│
+├── infrastructure/
+│   └── terraform-modules/
 │
 ├── scripts/
 │   ├── ci/
@@ -610,6 +759,7 @@ shared/
 ├── docs/
 │   ├── architecture/
 │   ├── workflows/
+│   ├── contracts/
 │   ├── security/
 │   └── operations/
 │
@@ -617,7 +767,11 @@ shared/
 ├── CONTRIBUTING.md
 ├── SECURITY.md
 ├── CHANGELOG.md
-└── CODEOWNERS
+├── CODEOWNERS
+├── package.json
+├── pnpm-workspace.yaml
+├── turbo.json
+└── changeset-config.json
 ```
 
 The structure should remain **purpose-driven**. Directories should not be created merely because the structure looks impressive.
@@ -630,7 +784,7 @@ A consuming repository should use a reusable workflow rather than copying it whe
 
 Example:
 
-```yaml
+```
 name: CI
 
 on:
@@ -646,7 +800,7 @@ jobs:
 
 If inputs are required:
 
-```yaml
+```
 jobs:
   ci:
     uses: nabhold/shared/.github/workflows/python-ci.yml@<sha-for-v1.x.x> # v1.x.x
@@ -659,6 +813,23 @@ Project-specific behaviour should be supplied through documented inputs rather t
 
 ---
 
+# Consuming Shared Contracts & Packages
+
+Contracts under `contracts/` are consumed by reference, not by copy-paste: a service implementing an interface, or generating a client from an OpenAPI/AsyncAPI spec, should point at a tagged version of this repository rather than duplicating the schema inline.
+
+Packages under `packages/` are consumed as ordinary versioned npm/pnpm dependencies, published from this repository's `packages/` workspace:
+
+```
+"dependencies": {
+  "@nabhold/types": "^1.x.x",
+  "@nabhold/api-client": "^1.x.x"
+}
+```
+
+As with workflows, security- or interface-sensitive packages should be pinned to an exact version rather than a floating range, with intentional upgrades reviewed like any other dependency bump.
+
+---
+
 # Workflow Contract
 
 Every reusable workflow should document its contract.
@@ -666,7 +837,7 @@ Every reusable workflow should document its contract.
 At minimum:
 
 | Property           | Description                   |
-| ------------------ | ----------------------------- |
+| ------------------ | ------------------------------ |
 | Purpose            | What the workflow does        |
 | Trigger            | How the workflow is invoked   |
 | Inputs             | Accepted configuration        |
@@ -680,7 +851,7 @@ At minimum:
 | Version            | Current workflow version      |
 | Breaking changes   | Compatibility considerations  |
 
-This documentation is particularly important because reusable workflows behave like internal APIs.
+This documentation is particularly important because reusable workflows behave like internal APIs — and every schema in `contracts/` should document the equivalent: purpose, fields, required vs. optional, version, and breaking-change history.
 
 ---
 
@@ -699,7 +870,13 @@ Testing should include, where applicable:
 7. Artifact creation.
 8. Failure-path behaviour.
 
-A workflow that is syntactically valid but unusable by consumers is not considered successfully tested.
+Changes to contracts and packages should additionally include:
+
+9. Schema/contract validation against representative payloads.
+10. Consumer-driven contract tests against known consumers, where they exist.
+11. A documented compatibility assessment (does this change require a MAJOR bump?).
+
+A workflow — or contract — that is syntactically valid but unusable by consumers is not considered successfully tested.
 
 ---
 
@@ -707,7 +884,7 @@ A workflow that is syntactically valid but unusable by consumers is not consider
 
 Changes should normally follow:
 
-```text
+```
 Change
   │
   ▼
@@ -738,15 +915,15 @@ Breaking changes should receive particular attention and must not be silently in
 
 # Deprecation
 
-Shared workflows should not be removed abruptly when downstream repositories depend on them.
+Shared workflows, contracts, and packages should not be removed abruptly when downstream repositories depend on them.
 
 A normal deprecation process should be:
 
-```text
+```
 Introduce replacement
         │
         ▼
-Mark old workflow deprecated
+Mark old workflow/contract/package deprecated
         │
         ▼
 Notify consumers
@@ -763,12 +940,12 @@ Remove after agreed sunset period
 
 Deprecation notices should identify:
 
-* affected workflow;
-* replacement;
-* migration instructions;
-* deadline;
-* breaking changes;
-* responsible maintainers.
+- affected workflow, contract, or package;
+- replacement;
+- migration instructions;
+- deadline;
+- breaking changes;
+- responsible maintainers.
 
 ---
 
@@ -780,10 +957,15 @@ Critical files and directories should be covered by `CODEOWNERS`.
 
 Example:
 
-```text
+```
 /.github/              @nabhold/platform-engineering
 /actions/              @nabhold/platform-engineering
 /scripts/              @nabhold/platform-engineering
+/contracts/            @nabhold/platform-engineering @nabhold/architecture
+/packages/             @nabhold/platform-engineering
+/observability/        @nabhold/platform-engineering
+/compliance/           @nabhold/security @nabhold/legal
+/infrastructure/       @nabhold/platform-engineering
 /security/             @nabhold/security
 ```
 
@@ -797,35 +979,36 @@ Contributors should ask one question before adding anything:
 
 > **Is this genuinely reusable across multiple NABHOLD repositories?**
 
-If the answer is no, the code probably belongs in the consuming project.
+If the answer is no, the code — or contract — probably belongs in the consuming project (see [Relationship With Product-Level Shared Directories](#relationship-with-product-level-shared-directories)).
 
-Before contributing a shared workflow:
+Before contributing a shared workflow, contract, or package:
 
-* identify its intended consumers;
-* define its interface;
-* minimise required inputs;
-* minimise required permissions;
-* document secrets;
-* pin external actions;
-* test the workflow;
-* document compatibility;
-* consider versioning;
-* consider failure behaviour.
+- identify its intended consumers;
+- define its interface;
+- minimise required inputs;
+- minimise required permissions;
+- document secrets;
+- pin external actions;
+- test the workflow or validate the contract;
+- document compatibility;
+- consider versioning;
+- consider failure behaviour;
+- consider whether the change requires notifying existing consumers.
 
 ---
 
 # Change Management
 
-Shared infrastructure changes require greater discipline than ordinary application changes because a single defect can affect multiple repositories.
+Shared infrastructure changes require greater discipline than ordinary application changes because a single defect — or a single breaking contract change — can affect multiple repositories.
 
 Changes should be categorised as:
 
-* **Breaking**
-* **Feature**
-* **Fix**
-* **Security**
-* **Maintenance**
-* **Documentation**
+- **Breaking**
+- **Feature**
+- **Fix**
+- **Security**
+- **Maintenance**
+- **Documentation**
 
 Security fixes should be prioritised appropriately and may require expedited release procedures.
 
@@ -838,7 +1021,7 @@ The following labels are recommended for issues and pull requests in `nabhold/sh
 ## Type
 
 | Label                | Purpose                                                  |
-| -------------------- | -------------------------------------------------------- |
+| -------------------- | ---------------------------------------------------------|
 | `type:feature`       | New capability                                           |
 | `type:fix`           | Bug or defect correction                                 |
 | `type:security`      | Security-related change                                  |
@@ -852,7 +1035,7 @@ The following labels are recommended for issues and pull requests in `nabhold/sh
 ## Area
 
 | Label                 | Purpose                       |
-| --------------------- | ----------------------------- |
+| ---------------------- | ------------------------------|
 | `area:actions`        | GitHub Actions                |
 | `area:workflows`      | Reusable workflows            |
 | `area:ci`             | Continuous Integration        |
@@ -864,16 +1047,20 @@ The following labels are recommended for issues and pull requests in `nabhold/sh
 | `area:containers`     | Docker/container workflows    |
 | `area:python`         | Python tooling                |
 | `area:node`           | Node.js/TypeScript tooling    |
-| `area:flutter`        | Flutter tooling               |
+| `area:flutter`        | Flutter tooling                |
 | `area:infrastructure` | Infrastructure automation     |
 | `area:scripts`        | Shared scripts                |
 | `area:templates`      | Repository/workflow templates |
 | `area:github`         | GitHub platform configuration |
+| `area:contracts`      | API/event/data contracts      |
+| `area:packages`       | Published TS/JS packages      |
+| `area:observability`  | Logging/metrics/tracing specs |
+| `area:compliance`     | Data classification/audit     |
 
 ## Priority
 
 | Label               | Purpose                                    |
-| ------------------- | ------------------------------------------ |
+| -------------------- | -------------------------------------------|
 | `priority:critical` | Immediate attention required               |
 | `priority:high`     | Significant operational or security impact |
 | `priority:medium`   | Normal priority                            |
@@ -882,7 +1069,7 @@ The following labels are recommended for issues and pull requests in `nabhold/sh
 ## Status
 
 | Label                  | Purpose                                      |
-| ---------------------- | -------------------------------------------- |
+| ------------------------| ----------------------------------------------|
 | `status:blocked`       | Cannot proceed due to an external dependency |
 | `status:in-progress`   | Currently being implemented                  |
 | `status:needs-review`  | Awaiting review                              |
@@ -893,7 +1080,7 @@ The following labels are recommended for issues and pull requests in `nabhold/sh
 ## Security
 
 | Label                    | Purpose                                 |
-| ------------------------ | --------------------------------------- |
+| --------------------------| ------------------------------------------|
 | `security:vulnerability` | Confirmed vulnerability                 |
 | `security:hardening`     | Security improvement                    |
 | `security:supply-chain`  | Dependency/action supply-chain security |
@@ -904,9 +1091,9 @@ The following labels are recommended for issues and pull requests in `nabhold/sh
 ## Dependencies
 
 | Label                        | Purpose                         |
-| ---------------------------- | ------------------------------- |
+| ------------------------------| ----------------------------------|
 | `dependencies:github-action` | GitHub Action dependency        |
-| `dependencies:python`        | Python dependency               |
+| `dependencies:python`        | Python dependency                |
 | `dependencies:node`          | Node/npm dependency             |
 | `dependencies:container`     | Container/base-image dependency |
 | `dependencies:tooling`       | Development/CI tooling          |
@@ -914,7 +1101,7 @@ The following labels are recommended for issues and pull requests in `nabhold/sh
 ## Compatibility
 
 | Label                               | Purpose                               |
-| ----------------------------------- | ------------------------------------- |
+| --------------------------------------| ----------------------------------------|
 | `compatibility:breaking`            | Breaking compatibility change         |
 | `compatibility:backward-compatible` | Backward-compatible change            |
 | `compatibility:consumer-impact`     | Requires downstream repository action |
@@ -925,15 +1112,16 @@ The following labels are recommended for issues and pull requests in `nabhold/sh
 
 Labels use a namespace format:
 
-```text
+```
 namespace:value
 ```
 
 For example:
 
-```text
+```
 type:security
 area:workflows
+area:contracts
 priority:high
 security:supply-chain
 ```
@@ -942,7 +1130,7 @@ This makes labels easier to search, filter, automate, and interpret consistently
 
 Avoid creating arbitrary labels such as:
 
-```text
+```
 urgent
 important
 workflow issue
@@ -959,13 +1147,13 @@ The `shared` repository should be governed as an internal platform.
 
 That means:
 
-* changes should be reviewed;
-* security-sensitive changes should receive appropriate scrutiny;
-* breaking changes should be explicitly identified;
-* reusable workflows should have documented contracts;
-* dependencies should be kept current;
-* deprecated interfaces should be managed deliberately;
-* consumers should not be surprised by changes.
+- changes should be reviewed;
+- security-sensitive changes should receive appropriate scrutiny;
+- breaking changes should be explicitly identified;
+- reusable workflows and contracts should have documented interfaces;
+- dependencies should be kept current;
+- deprecated interfaces should be managed deliberately;
+- consumers should not be surprised by changes.
 
 The repository should favour **predictability over novelty**.
 
@@ -973,34 +1161,38 @@ The repository should favour **predictability over novelty**.
 
 # Relationship With NABHOLD Projects
 
-`nabhold/shared` is intended to sit beneath the organisation's application and product repositories as a common engineering layer.
+`nabhold/shared` is intended to sit beneath the organisation's application and product repositories as a common engineering and interface layer.
 
 Conceptually:
 
-```text
-                    NABHOLD ORGANISATION
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │ nabhold/shared  │
-                  │                 │
-                  │ CI/CD           │
-                  │ Security        │
-                  │ Automation      │
-                  │ Standards       │
-                  │ Tooling         │
-                  └────────┬────────┘
-                           │
-             ┌─────────────┼─────────────┐
-             │             │             │
-             ▼             ▼             ▼
-         ┌────────┐    ┌────────┐    ┌────────┐
-         │ Baobab │    │ Zuri   │    │ Future │
-         │        │    │ Beans  │    │ Repos  │
-         └────────┘    └────────┘    └────────┘
+```
+           NABHOLD ORGANISATION
+                     │
+                     ▼
+         ┌───────────────────────┐
+         │     nabhold/shared     │
+         │                        │
+         │ CI/CD                  │
+         │ Security               │
+         │ Automation             │
+         │ Standards              │
+         │ Tooling                │
+         │ Contracts & Schemas    │
+         │ Packages               │
+         │ Observability Specs    │
+         │ Compliance Schemas     │
+         └────────────┬───────────┘
+                       │
+      ┌────────────────┼────────────────┐
+      │                │                │
+      ▼                ▼                ▼
+┌────────┐        ┌────────┐        ┌────────┐
+│ Baobab │        │ Zuri   │        │ Future │
+│        │        │ Beans  │        │ Repos  │
+└────────┘        └────────┘        └────────┘
 ```
 
-The shared repository should provide the **common engineering foundation**, while individual repositories retain responsibility for their own business logic and product-specific behaviour.
+The shared repository should provide the **common engineering and interface foundation**, while individual repositories retain responsibility for their own business logic and product-specific behaviour.
 
 ---
 
@@ -1012,50 +1204,62 @@ The shared repository should provide the **common engineering foundation**, whil
 **Visibility:** Private
 **Criticality:** High
 **Consumers:** NABHOLD repositories and approved organisation projects
-**Primary Function:** Reusable engineering automation and governance
+**Primary Function:** Reusable engineering automation, contracts, and governance
 
 ---
 
 # Roadmap
 
-The repository may progressively evolve toward the following capabilities:
+The repository may progressively evolve toward the following capabilities.
 
 ### Foundation
 
-* [ ] Reusable CI workflows
-* [ ] Reusable CD workflows
-* [ ] Security workflows
-* [ ] Documentation workflows
-* [ ] Release workflows
-* [ ] Standard action pinning
-* [ ] Standard permissions model
-* [ ] Repository templates
+- [ ] Reusable CI workflows
+- [ ] Reusable CD workflows
+- [ ] Security workflows
+- [ ] Documentation workflows
+- [ ] Release workflows
+- [ ] Standard action pinning
+- [ ] Standard permissions model
+- [ ] Repository templates
+
+### Interfaces & Data
+
+- [ ] Core API contracts (OpenAPI) for existing services
+- [ ] Standard error-response contract
+- [ ] Audit-log event schema
+- [ ] Data-classification taxonomy
+- [ ] AsyncAPI contracts once multi-service events exist
+- [ ] `@nabhold/types` package generated from contracts
 
 ### Developer Experience
 
-* [ ] Standard development environment checks
-* [ ] Language-specific CI templates
-* [ ] Container build templates
-* [ ] Release automation
-* [ ] Dependency update automation
+- [ ] Standard development environment checks
+- [ ] Language-specific CI templates
+- [ ] Container build templates
+- [ ] Release automation
+- [ ] Dependency update automation
+- [ ] `@nabhold/eslint-config`, `@nabhold/tsconfig` packages
 
 ### Security
 
-* [ ] CodeQL integration
-* [ ] Dependency vulnerability scanning
-* [ ] Secret scanning guidance
-* [ ] Supply-chain controls
-* [ ] OIDC patterns
-* [ ] SBOM generation
-* [ ] Container scanning
+- [ ] CodeQL integration
+- [ ] Dependency vulnerability scanning
+- [ ] Secret scanning guidance
+- [ ] Supply-chain controls
+- [ ] OIDC patterns
+- [ ] SBOM generation
+- [ ] Container scanning
 
 ### Platform Engineering
 
-* [ ] Standard deployment workflows
-* [ ] Cloud authentication patterns
-* [ ] Infrastructure validation
-* [ ] Environment promotion workflows
-* [ ] Organisation-wide operational automation
+- [ ] Standard deployment workflows
+- [ ] Cloud authentication patterns
+- [ ] Infrastructure validation
+- [ ] Reusable Terraform modules
+- [ ] Environment promotion workflows
+- [ ] Organisation-wide operational automation
+- [ ] Consumer-driven contract testing across services
 
 ---
 
@@ -1065,7 +1269,7 @@ The purpose of `shared` is not to centralise everything.
 
 It is to **centralise what should be common**.
 
-A good shared component should provide:
+A good shared component — whether a workflow, a contract, or a package — should provide:
 
 > **One implementation, many consumers, clear ownership, explicit contracts, secure defaults, and predictable versioning.**
 
@@ -1077,7 +1281,7 @@ If a component cannot satisfy those characteristics, it should probably remain l
 
 **NABHOLD Engineering / Platform Team**
 
-For changes affecting organisation-wide workflows, security controls, deployment infrastructure, or reusable workflow contracts, obtain appropriate maintainer review before merging.
+For changes affecting organisation-wide workflows, security controls, deployment infrastructure, contracts, or reusable workflow interfaces, obtain appropriate maintainer review before merging.
 
 ---
 
@@ -1093,4 +1297,4 @@ No content in this repository should be copied, redistributed, or reused outside
 
 This repository is intended for authorised NABHOLD personnel, systems, and repositories.
 
-Because workflows contained here may execute with elevated privileges across other repositories, treat changes to this repository as changes to **shared organisational infrastructure**.
+Because workflows, contracts, and packages contained here may execute with elevated privileges — or be relied upon as interfaces — across other repositories, treat changes to this repository as changes to **shared organisational infrastructure**.
