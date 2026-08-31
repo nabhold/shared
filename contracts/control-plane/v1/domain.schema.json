@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/control-plane/v1/domain.schema.json",
+  "title": "Nabhold control-plane domain identifiers",
+  "$defs": {
+    "resourceId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$",
+      "minLength": 3,
+      "maxLength": 63
+    },
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "legalEntityId": { "$ref": "#/$defs/resourceId" },
+    "tenantId": { "$ref": "#/$defs/resourceId" },
+    "estateId": { "$ref": "#/$defs/resourceId" },
+    "environment": {
+      "type": "string",
+      "enum": ["local", "development", "staging", "production"]
+    }
+  }
+}
+

@@ -1,0 +1,69 @@
+openapi: 3.1.0
+info:
+  title: Nabhold Baobab Control Plane API
+  version: 1.0.0
+  description: Contract for tenant lifecycle management. Implementations live in nabhold/baobab-cp.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: https://control.nabhold.com/v1
+    description: Production placeholder; activation requires an approved domain binding.
+security:
+  - oidc: [tenant:write]
+paths:
+  /tenants:
+    post:
+      operationId: registerTenant
+      summary: Register a tenant and start an idempotent provisioning operation
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./tenant-registration.schema.json
+      responses:
+        "202":
+          description: Registration accepted or an existing idempotent result returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProvisioningOperation"
+        "400": { description: Invalid request }
+        "401": { description: Authentication required }
+        "403": { description: Insufficient authority }
+        "409": { description: Identifier conflict or incompatible idempotent replay }
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 16, maxLength: 128 }
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: false
+      schema: { type: string, format: uuid }
+  schemas:
+    ProvisioningOperation:
+      type: object
+      additionalProperties: false
+      required: [operation_id, tenant_id, state, revision, created_at]
+      properties:
+        operation_id: { type: string, format: uuid }
+        tenant_id: { $ref: ./domain.schema.json#/$defs/tenantId }
+        state:
+          type: string
+          enum: [requested, accepted, provisioning, reconciling, active, suspended, failed, decommissioning, cancelled]
+        revision: { type: integer, minimum: 1 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        failure_code: { type: [string, "null"] }
+  securitySchemes:
+    oidc:
+      type: openIdConnect
+      openIdConnectUrl: https://identity.nabhold.com/.well-known/openid-configuration

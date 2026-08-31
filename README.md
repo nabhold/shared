@@ -11,7 +11,14 @@
 
 ## Overview
 
-`nabhold/shared` is the central repository for **reusable engineering infrastructure across the NABHOLD organisation**.
+`nabhold/shared` is the central repository for **versioned organisational
+contracts and reusable engineering infrastructure across the NABHOLD
+organisation**.
+
+It is also the source of truth for portable API, event, identity, tenancy, and
+environment schemas. It contains no deployable server or environment. Runtime
+implementation belongs to the consuming application; infrastructure
+implementation belongs to `nabhold/infrastructure`.
 
 It exists to prevent individual repositories from independently reinventing the same CI/CD pipelines, GitHub Actions workflows, automation scripts, security controls, configuration patterns, operational conventions, API contracts, data schemas, and common libraries.
 
