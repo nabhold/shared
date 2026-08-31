@@ -1,0 +1,5 @@
+* @nabhold/platform-engineering
+/.github/ @nabhold/platform-engineering @nabhold/security
+/contracts/ @nabhold/platform-engineering @nabhold/security
+/templates/ @nabhold/platform-engineering
+/SECURITY.md @nabhold/security

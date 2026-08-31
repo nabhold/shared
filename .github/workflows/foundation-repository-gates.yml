@@ -1,0 +1,109 @@
+name: Reusable — Foundation Repository Gates
+
+on:
+  workflow_call:
+    inputs:
+      dockerfile:
+        description: Dockerfile path; leave empty when the repository has no image.
+        required: false
+        type: string
+        default: "Dockerfile"
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+
+  repository-contract:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate Codespaces and environment contract
+        shell: ruby {0}
+        run: |
+          require "yaml"
+
+          declaration_path = ".nabhold/environment.yaml"
+          devcontainer_path = ".devcontainer/devcontainer.json"
+          abort "#{declaration_path} is required" unless File.file?(declaration_path)
+          abort "#{devcontainer_path} is required" unless File.file?(devcontainer_path)
+
+          declaration = YAML.safe_load_file(declaration_path, aliases: true)
+          abort "invalid environment contract name" unless declaration.dig("schema", "name") == "nabhold-development-environment-contract"
+          abort "unsupported environment contract version" unless declaration.dig("schema", "version").to_s == "1.0"
+          abort "environment provider must be baobab-dev" unless declaration.dig("environment", "provider") == "baobab-dev"
+
+          profile = declaration.dig("environment", "profile")
+          abort "profile must be full or frontend" unless %w[full frontend].include?(profile)
+          minimum = declaration.dig("environment", "minimum_version").to_s
+          abort "Foundation 4 requires baobab-dev v1.2.6" unless minimum.start_with?("1.2.6")
+
+          expected = profile == "frontend" ? "ghcr.io/nabhold/baobab-dev:1.2.6-frontend" : "ghcr.io/nabhold/baobab-dev:1.2.6"
+          devcontainer = File.read(devcontainer_path)
+          abort "devcontainer must use #{expected}" unless devcontainer.include?(expected)
+
+          policy = declaration.fetch("compatibility_policy")
+          %w[strict_runtime_versions allow_newer_patch_versions allow_newer_minor_versions allow_older_versions].each do |field|
+            abort "compatibility_policy.#{field} must be boolean" unless [true, false].include?(policy[field])
+          end
+
+          capabilities = declaration.dig("validation", "required_capabilities")
+          abort "required_capabilities must not be empty" unless capabilities.is_a?(Array) && !capabilities.empty?
+
+      - name: Enforce reproducibility inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f package.json ]]; then
+            [[ -f pnpm-lock.yaml || -f package-lock.json || -f yarn.lock ]] || {
+              echo "::error::Node repositories require a committed lockfile"; exit 1;
+            }
+          fi
+          if [[ -f go.mod ]]; then
+            [[ -f go.sum ]] || { echo "::error::Go repositories require go.sum"; exit 1; }
+          fi
+          if [[ -f Dockerfile ]] && grep -Eq '^FROM[[:space:]]+[^[:space:]]+:(latest|edge)([[:space:]]|$)' Dockerfile; then
+            echo "::error::Dockerfile base images must use explicit release versions"; exit 1
+          fi
+          violations=0
+          while IFS= read -r line; do
+            reference=$(sed -E 's/.*uses:[[:space:]]*//' <<< "$line" | awk '{print $1}')
+            [[ "$reference" == ./* || "$reference" =~ @[0-9a-f]{40}$ ]] || {
+              echo "::error::Action is not pinned to a full commit SHA: $reference"; violations=$((violations + 1));
+            }
+          done < <(find .github -type f \( -name '*.yml' -o -name '*.yaml' \) -exec grep -hE '^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*' {} + 2>/dev/null || true)
+          (( violations == 0 ))
+
+  vulnerability-scan:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install checksum-verified Trivy
+        env:
+          TRIVY_VERSION: "0.73.0"
+          TRIVY_SHA256: "2edd39da482bb4e9831962487b68f68e3928ec3137794757f54d00383d79547b"
+        run: |
+          set -euo pipefail
+          asset="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          curl -fsSL -o "$asset" "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${asset}"
+          echo "${TRIVY_SHA256}  ${asset}" | sha256sum -c -
+          tar -xzf "$asset" trivy
+          sudo install -m 0755 trivy /usr/local/bin/trivy
+      - name: Scan repository dependencies and secrets
+        run: trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 1 --skip-version-check .
+      - name: Build container for scanning
+        if: inputs.dockerfile != '' && hashFiles(inputs.dockerfile) != ''
+        env:
+          DOCKERFILE: ${{ inputs.dockerfile }}
+        run: docker build --file "$DOCKERFILE" --tag foundation-scan:${{ github.sha }} .
+      - name: Scan built container
+        if: inputs.dockerfile != '' && hashFiles(inputs.dockerfile) != ''
+        run: trivy image --scanners vuln,secret --severity HIGH,CRITICAL --exit-code 1 --skip-version-check foundation-scan:${{ github.sha }}

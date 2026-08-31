@@ -1,0 +1,17 @@
+{
+  "name": "Nabhold Shared Contracts",
+  "image": "ghcr.io/nabhold/baobab-dev:1.2.6-frontend",
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+  "updateContentCommand": "corepack enable && pnpm install --frozen-lockfile --ignore-scripts",
+  "postCreateCommand": "pnpm lint",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "davidanson.vscode-markdownlint",
+        "redhat.vscode-yaml",
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  }
+}
