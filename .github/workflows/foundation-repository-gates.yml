@@ -8,7 +8,7 @@ on:
         required: false
         type: string
         default: "Dockerfile"
-      build-context:
+      build_context:
         description: Docker build context used when dockerfile exists.
         required: false
         type: string
@@ -118,7 +118,7 @@ jobs:
         if: steps.container.outputs.enabled == 'true'
         env:
           DOCKERFILE: ${{ inputs.dockerfile }}
-          BUILD_CONTEXT: ${{ inputs.build-context }}
+          BUILD_CONTEXT: ${{ inputs.build_context }}
         run: docker build --file "$DOCKERFILE" --tag foundation-scan:${{ github.sha }} "$BUILD_CONTEXT"
       - name: Scan built container
         if: steps.container.outputs.enabled == 'true'
