@@ -108,7 +108,7 @@ entities:
     jurisdiction: null            # TBD
     registration_identifier: null # TBD
 
-    business_model: "B2B"
+    business_model: "B2C"
     baobab_tenant: true
 
     digital_estate:
