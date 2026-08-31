@@ -23,11 +23,16 @@ Changes that have been merged but have not yet been included in a released versi
 
 ## Added
 
-Nothing yet.
+- Canonical control-plane context-resolution request and response schemas.
+- A machine-readable control-plane security policy covering token validation,
+  scopes, transport trust, audit fields, and failure behaviour.
+- OIDC-protected management and workload operations in the control-plane
+  OpenAPI contract.
 
 ## Changed
 
-Nothing yet.
+- Access-token claims now require an explicit actor type and may identify an
+  authorised party through `azp`.
 
 ## Deprecated
 
@@ -43,7 +48,9 @@ Nothing yet.
 
 ## Security
 
-Nothing yet.
+- Restricted control-plane access tokens to asymmetric RS256 or ES256
+  signatures, a 15-minute maximum lifetime, and explicit audience and scope
+  checks.
 
 ---
 
