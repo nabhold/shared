@@ -4,10 +4,9 @@
   "title": "Register tenant command",
   "type": "object",
   "additionalProperties": false,
-  "required": ["legal_entity_id", "tenant_id", "display_name", "isolation_strategy", "residency_region"],
+  "required": ["legal_entity_id", "display_name", "isolation_strategy", "residency_region"],
   "properties": {
-    "legal_entity_id": { "$ref": "domain.schema.json#/$defs/legalEntityId" },
-    "tenant_id": { "$ref": "domain.schema.json#/$defs/tenantId" },
+    "legal_entity_id": { "$ref": "domain.schema.json#/$defs/legalEntityIdInput" },
     "display_name": { "type": "string", "minLength": 1, "maxLength": 255 },
     "isolation_strategy": {
       "type": "string",

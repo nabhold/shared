@@ -13,23 +13,39 @@
       "type": "string",
       "format": "uuid"
     },
-    "legalEntityId": {
+    "canonicalLegalEntityId": {
       "type": "string",
-      "oneOf": [
-        {
-          "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*$",
-          "description": "Canonical legal-entity identifier from contracts/legal-entity/registry.yaml."
-        },
-        {
-          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$",
-          "deprecated": true,
-          "description": "Legacy control-plane alias accepted during the v1 compatibility window only. New records must use the canonical registry identifier."
-        }
-      ],
+      "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*$",
       "minLength": 3,
-      "maxLength": 63
+      "maxLength": 63,
+      "description": "Canonical legal-entity identifier from contracts/legal-entity/registry.yaml. Responses, persisted records and events must use this form."
     },
-    "tenantId": { "$ref": "#/$defs/resourceId" },
+    "legacyLegalEntityAlias": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$",
+      "minLength": 3,
+      "maxLength": 63,
+      "deprecated": true,
+      "description": "Legacy control-plane alias accepted at documented input boundaries during the v1 compatibility window only."
+    },
+    "legalEntityIdInput": {
+      "oneOf": [
+        { "$ref": "#/$defs/canonicalLegalEntityId" },
+        { "$ref": "#/$defs/legacyLegalEntityAlias" }
+      ],
+      "description": "Compatibility input union. Consumers must resolve aliases and emit only canonicalLegalEntityId values."
+    },
+    "legalEntityId": {
+      "$ref": "#/$defs/canonicalLegalEntityId",
+      "description": "Backward-compatible definition name for canonical legal-entity output and persistence contracts."
+    },
+    "tenantId": {
+      "type": "string",
+      "pattern": "^tn_[a-z0-9]+$",
+      "minLength": 6,
+      "maxLength": 63,
+      "description": "Opaque Control Plane-minted tenant identifier. It must not contain a legal-entity, country, market or vendor identity."
+    },
     "productId": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",

@@ -50,7 +50,7 @@
 
 schema:
   name: "nabhold-legal-entity-registry"
-  version: "1.0"
+  version: "1.1"
 
 # ------------------------------------------------------------------------------
 # Entities
@@ -88,6 +88,7 @@ entities:
   - id: "ZURIBEANS"
     legal_name: "Zuribeans"
     role: "subsidiary"
+    legacy_aliases: ["zuribeans_za"] # accepted only at migration input boundaries
 
     jurisdiction: null            # TBD
     registration_identifier: null # TBD
@@ -100,7 +101,7 @@ entities:
       status: "active"
 
     baobab_products:
-      - product: "trade-intelligence"
+      - product: "baobab-trade"
         confirmed: true            # confirmed by Chief Software Engineer,
                                     # 2026-08-26
 
@@ -123,7 +124,7 @@ entities:
       status: "planned"
 
     baobab_products:
-      - product: "trade-intelligence"
+      - product: "baobab-trade"
         confirmed: true            # confirmed by Chief Software Engineer,
                                     # 2026-08-26
 

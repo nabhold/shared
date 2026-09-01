@@ -55,7 +55,15 @@ Nothing yet.
 
 ## Fixed
 
-Nothing yet.
+- Control Plane registration commands no longer accept caller-selected tenant
+  identifiers; the Control Plane returns its minted opaque identifier in the
+  provisioning operation.
+- The shared `tenantId` schema now enforces the same opaque `tn_` grammar as
+  tenancy governance.
+- Legal-entity compatibility aliases are accepted only at documented input
+  boundaries; responses and persisted contracts require registry identifiers.
+- Control Plane product-entitlement examples now reference products declared
+  by the canonical legal-entity registry.
 
 ## Security
 
