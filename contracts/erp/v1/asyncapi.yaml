@@ -1,0 +1,103 @@
+asyncapi: 3.1.0
+info:
+  title: Nabhold Baobab ERP boundary events
+  version: 1.0.0
+  description: Vendor-neutral, tenant-scoped ERP consequences using the canonical Baobab event envelope.
+defaultContentType: application/json
+channels:
+  tradeToErp:
+    address: nabhold.erp.commands.v1
+    messages:
+      commerceOrderPlaced: { $ref: "#/components/messages/CommerceOrderPlaced" }
+      commerceCustomerProjected: { $ref: "#/components/messages/CommerceCustomerProjected" }
+  erpOutcomes:
+    address: nabhold.erp.outcomes.v1
+    messages:
+      orderConsequenceChanged: { $ref: "#/components/messages/OrderConsequenceChanged" }
+      businessPartnerChanged: { $ref: "#/components/messages/BusinessPartnerChanged" }
+      inventoryAvailabilityChanged: { $ref: "#/components/messages/InventoryAvailabilityChanged" }
+      warehouseChanged: { $ref: "#/components/messages/WarehouseChanged" }
+      invoiceChanged: { $ref: "#/components/messages/InvoiceChanged" }
+      paymentAccountingChanged: { $ref: "#/components/messages/PaymentAccountingChanged" }
+      provisioningChanged: { $ref: "#/components/messages/ProvisioningChanged" }
+operations:
+  receiveTradeConsequences:
+    action: receive
+    channel: { $ref: "#/channels/tradeToErp" }
+  publishErpOutcomes:
+    action: send
+    channel: { $ref: "#/channels/erpOutcomes" }
+components:
+  messages:
+    CommerceOrderPlaced:
+      name: com.nabhold.trade.order.placed.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./commerce-order-consequence.schema.json }
+    CommerceCustomerProjected:
+      name: com.nabhold.trade.customer.projected.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./customer-projection.schema.json }
+    OrderConsequenceChanged:
+      name: com.nabhold.erp.order.consequence-changed.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./order-consequence-status.schema.json }
+    BusinessPartnerChanged:
+      name: com.nabhold.erp.business-partner.changed.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./business-partner-projection.schema.json }
+    InventoryAvailabilityChanged:
+      name: com.nabhold.erp.inventory.availability-changed.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./inventory-availability.schema.json }
+    WarehouseChanged:
+      name: com.nabhold.erp.warehouse.changed.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./warehouse-projection.schema.json }
+    InvoiceChanged:
+      name: com.nabhold.erp.invoice.changed.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./invoice-outcome.schema.json }
+    PaymentAccountingChanged:
+      name: com.nabhold.erp.payment.accounting-changed.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./payment-outcome.schema.json }
+    ProvisioningChanged:
+      name: com.nabhold.erp.provisioning.changed.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./provisioning-state.schema.json }

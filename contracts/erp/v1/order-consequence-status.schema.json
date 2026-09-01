@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/erp/v1/order-consequence-status.schema.json",
+  "title": "ERP order consequence status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["legal_entity_id", "commerce_order_id", "order_version", "erp_order_id", "status", "accounting_status", "inventory_status", "revision", "updated_at"],
+  "properties": {
+    "legal_entity_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/legalEntityId" },
+    "commerce_order_id": { "$ref": "./domain.schema.json#/$defs/canonicalResourceId" },
+    "order_version": { "$ref": "./domain.schema.json#/$defs/version" },
+    "erp_order_id": { "$ref": "./domain.schema.json#/$defs/erpResourceId" },
+    "status": { "type": "string", "enum": ["accepted", "processing", "posted", "needs_review", "rejected", "compensated"] },
+    "accounting_status": { "type": "string", "enum": ["not_applicable", "pending", "posted", "needs_review", "failed"] },
+    "inventory_status": { "type": "string", "enum": ["not_applicable", "pending", "allocated", "backordered", "fulfilled", "needs_review", "failed"] },
+    "invoice_id": { "$ref": "./domain.schema.json#/$defs/erpResourceId" },
+    "revision": { "$ref": "./domain.schema.json#/$defs/version" },
+    "updated_at": { "$ref": "./domain.schema.json#/$defs/timestamp" },
+    "exception_code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$", "maxLength": 96 }
+  }
+}

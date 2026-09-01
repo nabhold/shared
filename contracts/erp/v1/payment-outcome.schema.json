@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/erp/v1/payment-outcome.schema.json",
+  "title": "ERP payment accounting outcome",
+  "description": "Accounting/allocation result for a provider or Trade-owned capture. It does not alter provider capture authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["legal_entity_id", "payment_capture_id", "erp_payment_id", "status", "amount", "accounted_at", "revision"],
+  "properties": {
+    "legal_entity_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/legalEntityId" },
+    "payment_capture_id": { "$ref": "./domain.schema.json#/$defs/canonicalResourceId" },
+    "erp_payment_id": { "$ref": "./domain.schema.json#/$defs/erpResourceId" },
+    "invoice_id": { "$ref": "./domain.schema.json#/$defs/erpResourceId" },
+    "status": { "type": "string", "enum": ["received", "posted", "allocated", "partially_allocated", "needs_review", "reversed", "failed"] },
+    "amount": { "$ref": "./domain.schema.json#/$defs/money" },
+    "accounted_at": { "$ref": "./domain.schema.json#/$defs/timestamp" },
+    "revision": { "$ref": "./domain.schema.json#/$defs/version" },
+    "exception_code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$", "maxLength": 96 }
+  }
+}

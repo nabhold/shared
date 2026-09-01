@@ -1,0 +1,24 @@
+{
+  "specversion": "1.0",
+  "id": "8806d056-acb0-43d2-8bbc-fdd8522dca97",
+  "type": "com.nabhold.erp.inventory.availability-changed.v1",
+  "source": "urn:nabhold:service:baobab-erp",
+  "subject": "inventory:sku_01k4n72a:erp_01k4n7dg",
+  "time": "2026-09-01T10:00:05Z",
+  "datacontenttype": "application/json",
+  "dataschema": "https://contracts.nabhold.com/erp/v1/inventory-availability.schema.json",
+  "baobabscope": "tenant",
+  "correlationid": "ea733cd4-0daa-4c52-89f8-a940cfa8a1ac",
+  "causationid": "04ac0f78-b5f5-4a50-9296-39264d533433",
+  "tenantid": "tn_01k4m7x9q2v6c8r3d5f1h0j4",
+  "data": {
+    "legal_entity_id": "ZURIBEANS",
+    "sku_id": "sku_01k4n72a",
+    "warehouse_id": "erp_01k4n7dg",
+    "on_hand": { "value": "180", "unit": "EA" },
+    "erp_allocated": { "value": "12", "unit": "EA" },
+    "erp_available": { "value": "168", "unit": "EA" },
+    "as_of": "2026-09-01T10:00:05Z",
+    "revision": 41
+  }
+}

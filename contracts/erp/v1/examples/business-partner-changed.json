@@ -1,0 +1,24 @@
+{
+  "specversion": "1.0",
+  "id": "9a651126-569e-4a2b-af2f-a0692114df6d",
+  "type": "com.nabhold.erp.business-partner.changed.v1",
+  "source": "urn:nabhold:service:baobab-erp",
+  "subject": "business-partner:erp_01k4n79p",
+  "time": "2026-09-01T10:00:02Z",
+  "datacontenttype": "application/json",
+  "dataschema": "https://contracts.nabhold.com/erp/v1/business-partner-projection.schema.json",
+  "baobabscope": "tenant",
+  "correlationid": "ea733cd4-0daa-4c52-89f8-a940cfa8a1ac",
+  "tenantid": "tn_01k4m7x9q2v6c8r3d5f1h0j4",
+  "data": {
+    "legal_entity_id": "ZURIBEANS",
+    "business_partner_id": "erp_01k4n79p",
+    "source_customer_id": "customer_01k4n6x2",
+    "roles": ["customer"],
+    "display_name": "Example Importer",
+    "status": "active",
+    "billing_country": "KE",
+    "default_currency": "USD",
+    "revision": 1
+  }
+}

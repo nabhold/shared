@@ -1,0 +1,40 @@
+{
+  "specversion": "1.0",
+  "id": "04ac0f78-b5f5-4a50-9296-39264d533433",
+  "type": "com.nabhold.trade.order.placed.v1",
+  "source": "urn:nabhold:service:trade",
+  "subject": "order:order_01k4n6w5",
+  "time": "2026-09-01T10:00:00Z",
+  "datacontenttype": "application/json",
+  "dataschema": "https://contracts.nabhold.com/erp/v1/commerce-order-consequence.schema.json",
+  "baobabscope": "tenant",
+  "correlationid": "ea733cd4-0daa-4c52-89f8-a940cfa8a1ac",
+  "tenantid": "tn_01k4m7x9q2v6c8r3d5f1h0j4",
+  "idempotencykey": "trade-order-order_01k4n6w5-v1",
+  "data": {
+    "legal_entity_id": "ZURIBEANS",
+    "commerce_order_id": "order_01k4n6w5",
+    "order_version": 1,
+    "customer_id": "customer_01k4n6x2",
+    "market_id": "market_01k4n700",
+    "placed_at": "2026-09-01T10:00:00Z",
+    "currency": "USD",
+    "lines": [
+      {
+        "line_id": "line_01k4n715",
+        "sku_id": "sku_01k4n72a",
+        "quantity": { "value": "12", "unit": "EA" },
+        "unit_price": { "amount": "25.00", "currency": "USD" },
+        "quoted_tax_total": { "amount": "24.00", "currency": "USD" },
+        "line_total": { "amount": "324.00", "currency": "USD" }
+      }
+    ],
+    "totals": {
+      "subtotal": { "amount": "300.00", "currency": "USD" },
+      "discount": { "amount": "0.00", "currency": "USD" },
+      "quoted_tax": { "amount": "24.00", "currency": "USD" },
+      "grand_total": { "amount": "324.00", "currency": "USD" }
+    },
+    "payment_capture_ids": ["capture_01k4n73j"]
+  }
+}

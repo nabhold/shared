@@ -284,6 +284,9 @@ Current cross-engine contracts include:
 - **The canonical CloudEvents 1.0 envelope** in `contracts/events/v1`, including tenant scope, correlation, causation, idempotency and W3C trace context.
 - **RFC 9457 problem details** in `contracts/errors/v1` for cross-engine HTTP errors.
 - **Command and event idempotency rules** in `contracts/idempotency/v1`.
+- **Vendor-neutral ERP boundary contracts** in `contracts/erp/v1`, including
+  OpenAPI queries/provisioning, AsyncAPI consequences, explicit temporal
+  mappings, international value types and the system-of-record matrix.
 - **JSON Schema definitions** for shared data shapes — e.g. tenant object, user object, audit event.
 - **GraphQL schema fragments and shared types**, where applicable.
 - **gRPC / Protocol Buffer definitions**, for service-to-service calls that require them.
