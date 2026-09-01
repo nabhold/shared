@@ -56,7 +56,9 @@ on:
       - ".github/dependabot.yml"
       - "contracts/**"
       - "docs/adr/**"
+      - "docs/architecture/**"
       - "scripts/validate-governance-contracts.rb"
+      - "scripts/validate-cross-engine-contracts.rb"
   pull_request:
     paths:
       - ".github/workflows/**"
@@ -64,7 +66,9 @@ on:
       - ".github/dependabot.yml"
       - "contracts/**"
       - "docs/adr/**"
+      - "docs/architecture/**"
       - "scripts/validate-governance-contracts.rb"
+      - "scripts/validate-cross-engine-contracts.rb"
   workflow_dispatch:
 
 permissions:
@@ -72,7 +76,7 @@ permissions:
 
 jobs:
   governance-contracts:
-    name: Validate governance contracts
+    name: Validate canonical contracts
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -81,6 +85,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Validate tenancy, identity, product and example invariants
         run: ruby scripts/validate-governance-contracts.rb
+      - name: Validate event, error, trace and idempotency invariants
+        run: ruby scripts/validate-cross-engine-contracts.rb
 
   action-pinning:
     name: Enforce action pinning (self-check)

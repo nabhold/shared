@@ -1,0 +1,13 @@
+{
+  "event_id": "01K4EVENT",
+  "event_type": "trade.order.accepted",
+  "schema_version": "1.0",
+  "occurred_at": "2026-08-30T12:00:00Z",
+  "source": "baobab-trade",
+  "correlation_id": "01K4CORRELATION",
+  "tenant_id": "01K4TENANT",
+  "entity_id": "THAMANI-GLOBAL",
+  "payload": {
+    "trade_order_id": "order_123"
+  }
+}

@@ -80,7 +80,7 @@ fail_contract("registration example must let the Control Plane mint tenant_id") 
 example_tenant_ids = [
   registration_response_example.fetch("tenant_id"),
   context_example.dig("response", "tenant_id"),
-  provisioning_example.fetch("tenant_id"),
+  provisioning_example.fetch("tenantid"),
   provisioning_example.dig("data", "tenant_id")
 ]
 example_tenant_ids.each do |tenant_id|
@@ -90,7 +90,7 @@ fail_contract("examples must use one tenant identity") unless example_tenant_ids
 
 example_entity_id = register_example.fetch("legal_entity_id")
 fail_contract("registration example references an unknown legal entity") unless entity_ids.include?(example_entity_id)
-generated_tenant_id = provisioning_example.fetch("tenant_id")
+generated_tenant_id = provisioning_example.fetch("tenantid")
 fail_contract("tenant_id must not equal legal_entity_id") if generated_tenant_id == example_entity_id
 semantic_entity_tokens = entity_ids.map { |id| id.downcase.delete("-") }
 if semantic_entity_tokens.any? { |token| generated_tenant_id.include?(token) }

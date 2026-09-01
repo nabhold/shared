@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/control-plane/v1/provisioning-state-changed.schema.json",
+  "title": "Tenant provisioning state changed payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operation_id", "tenant_id", "previous_state", "state", "revision"],
+  "properties": {
+    "operation_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "$ref": "domain.schema.json#/$defs/tenantId" },
+    "previous_state": {
+      "type": "string",
+      "enum": ["requested", "accepted", "provisioning", "reconciling", "active", "suspended", "failed", "decommissioning", "cancelled"]
+    },
+    "state": {
+      "type": "string",
+      "enum": ["requested", "accepted", "provisioning", "reconciling", "active", "suspended", "failed", "decommissioning", "cancelled"]
+    },
+    "revision": { "type": "integer", "minimum": 1 },
+    "failure_code": { "type": ["string", "null"], "maxLength": 100 }
+  }
+}

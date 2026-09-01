@@ -19,6 +19,9 @@ paths:
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
         - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/CausationId"
+        - $ref: "#/components/parameters/Traceparent"
+        - $ref: "#/components/parameters/Tracestate"
       requestBody:
         required: true
         content:
@@ -41,10 +44,14 @@ paths:
                     state: accepted
                     revision: 1
                     created_at: "2026-08-31T12:00:00Z"
-        "400": { description: Invalid request }
-        "401": { description: Authentication required }
-        "403": { description: Insufficient authority }
-        "409": { description: Identifier conflict or incompatible idempotent replay }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /context/resolve:
     post:
       operationId: resolveTenantContext
@@ -53,6 +60,9 @@ paths:
         - workloadOidc: [context:resolve]
       parameters:
         - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/CausationId"
+        - $ref: "#/components/parameters/Traceparent"
+        - $ref: "#/components/parameters/Tracestate"
       requestBody:
         required: true
         content:
@@ -69,23 +79,58 @@ paths:
             application/json:
               schema:
                 $ref: ./context-resolution.schema.json#/$defs/response
-        "400": { description: Invalid request }
-        "401": { description: Authentication required }
-        "403": { description: Unresolved tenant or insufficient entitlement }
-        "409": { description: Tenant lifecycle does not permit access }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
 components:
   parameters:
     IdempotencyKey:
       name: Idempotency-Key
       in: header
       required: true
-      schema: { type: string, minLength: 16, maxLength: 128 }
+      schema:
+        type: string
+        pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        minLength: 16
+        maxLength: 128
     CorrelationId:
       name: X-Correlation-ID
       in: header
       required: false
+      description: A caller-supplied business correlation UUID. The service mints one when absent and returns it in problem details and emitted consequences.
       schema: { type: string, format: uuid }
+    CausationId:
+      name: X-Causation-ID
+      in: header
+      required: false
+      description: UUID of the immediate command or event that caused this request. Omit it for a root interaction.
+      schema: { type: string, format: uuid }
+    Traceparent:
+      name: traceparent
+      in: header
+      required: false
+      description: W3C Trace Context version 00 traceparent value.
+      schema:
+        type: string
+        pattern: "^00-(?!00000000000000000000000000000000)[0-9a-f]{32}-(?!0000000000000000)[0-9a-f]{16}-[0-9a-f]{2}$"
+    Tracestate:
+      name: tracestate
+      in: header
+      required: false
+      description: Optional W3C vendor trace state; never use it for credentials or business payloads.
+      schema:
+        type: string
+        pattern: "^[ -~]+$"
+        minLength: 1
+        maxLength: 512
   schemas:
+    ProblemDetails:
+      $ref: ../../errors/v1/problem-details.schema.json
     ProvisioningOperation:
       type: object
       additionalProperties: false
@@ -100,6 +145,31 @@ components:
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
         failure_code: { type: [string, "null"] }
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    Forbidden:
+      description: Unresolved tenant or insufficient authority or entitlement
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    Conflict:
+      description: Lifecycle conflict or incompatible idempotent replay
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
   securitySchemes:
     adminOidc:
       type: openIdConnect
