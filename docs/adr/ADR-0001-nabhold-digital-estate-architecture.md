@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted — amended 2026-08-30 for the approved Zuribeans B2B/Next.js direction |
+| **Status** | Accepted — tenancy portions superseded by ADR-0003 on 2026-09-01 |
 | **Date** | 2026-08-26 |
 | **Owner** | Chief Software Engineer, Nabhold Group Africa |
 | **Repository** | `nabhold/shared` (canonical home for this and future ADRs: `docs/adr/`) |
@@ -13,7 +13,7 @@
 
 ## 1. Context
 
-Nabhold Group Africa is a holding company with three operating subsidiaries — **Zuribeans** (B2B green-coffee trade), **Thamani Global** (B2B commodities trade), and **Equator & Estate Co.** (property) — plus the holding company's own corporate presence. Each subsidiary:
+Nabhold Group Africa is a holding company with three operating subsidiaries — **Zuribeans** (B2B green-coffee trade), **Thamani Global** (B2C retail), and **Equator & Estate Co.** (property) — plus the holding company's own corporate presence. Each subsidiary:
 
 - is a distinct legal entity that must be able to **scale independently into new markets**, each under its **own TLD** (e.g. `zuribeans.co.za`, `zuribeans.co.uk`),
 - owns a **full, customer-facing digital estate** (not merely a marketing site) that consumes shared backend capability rather than duplicating it, and
@@ -57,7 +57,7 @@ flowchart TB
 
     ENT --> NAB["nabhold/nabhold<br/>(Nabhold digital estate)"]
     ENT --> ZUR["nabhold/zuribeans<br/>(B2B green-coffee trade)"]
-    ENT --> THA["nabhold/thamani<br/>(B2B trade)"]
+    ENT --> THA["nabhold/thamani<br/>(B2C retail)"]
     ENT --> EQE["nabhold/equator-estate<br/>(property)"]
 
     SHARED -. contracts .-> BDEV["nabhold/baobab-dev"]
@@ -79,7 +79,7 @@ flowchart TB
     INFRA -->|deploys| NAB
 ```
 
-**Rule:** a legal entity may consume Baobab as a tenant without its digital estate becoming part of Baobab, and vice versa. `nabhold/nabhold` (holding company) is **not** a Baobab tenant — it has no product dependency on Baobab; it exists purely as the corporate/investor-facing estate.
+**Rule:** a legal entity may consume Baobab as a tenant without its digital estate becoming part of Baobab, and vice versa. A digital estate neither creates nor prohibits tenancy. ADR-0003 supersedes this ADR's former exclusion of Nabhold: Nabhold consumes `baobab-erp` under a separately provisioned tenant boundary while `nabhold/nabhold` remains the corporate/investor-facing estate.
 
 ### 2.2 Canonical legal-entity identity
 
@@ -90,7 +90,10 @@ entities:
   - id: NABHOLD
     legal_name: "Nabhold Group Africa"
     role: holding_company
-    baobab_tenant: false
+    baobab_tenant: true
+    baobab_products:
+      - product: baobab-erp
+        confirmed: true
 
   - id: ZURIBEANS
     legal_name: "Zuribeans"
@@ -101,7 +104,7 @@ entities:
   - id: THAMANI-GLOBAL
     legal_name: "Thamani Global"
     role: subsidiary
-    business_model: B2B
+    business_model: B2C
     baobab_tenant: true
 
   - id: EQUATOR-ESTATE
@@ -120,7 +123,7 @@ Every downstream system (Baobab tenancy, Infrastructure resource ownership tags,
 | **Trade Intelligence** | Zuribeans, Thamani Global | ✅ Confirmed |
 | **Property Intelligence** | Equator & Estate Co. | ⚠️ Inferred — not yet explicitly confirmed |
 | **Baobab Intelligence Engine (BIE)** | Cross-cutting substrate, used by all products/tenants | ⚠️ Inferred — not yet explicitly confirmed |
-| — | Nabhold (holding co.) | Not a tenant; no product consumption |
+| **Baobab ERP** | Nabhold (holding co.) | ✅ Confirmed 2026-09-01 |
 
 This mapping determines GraphQL subgraph ownership (§2.5) and must be reconfirmed before subgraph boundaries are cut in code.
 
@@ -139,7 +142,7 @@ nabhold/zuribeans/
 
 - **Framework guidance by estate needs** (not mandated across unrelated subsidiaries):
   - Zuribeans (B2B catalogue and buying journeys): **Next.js App Router**, consuming the Medusa v2 Store API supplied by `nabhold/baobab-trade`.
-  - Thamani Global (B2B, dashboard/forms-heavy, behind auth): **Next.js (App Router)**.
+  - Thamani Global (B2C retail storefront): **Next.js App Router**, consuming the Medusa v2 Store API supplied by `nabhold/baobab-trade`.
   - Equator & Estate (listings + transactional flows, mixed public/auth): **Next.js**, evaluated per app.
 - A new market does not automatically require a new application. Market-to-region, sales-channel and domain mapping must first be defined by a canonical contract; application boundaries follow demonstrated deployment or experience differences rather than geography alone.
 - Shared UI packages remain optional contracts, not mandatory repository structure. An estate may introduce a local brand wrapper when it actually consumes shared headless primitives; Zuribeans currently owns its presentation components directly.
@@ -269,6 +272,7 @@ No new repository. `baobab-dev`'s existing Dockerfile gains a `--target frontend
 |---|---|---|
 | 2026-08-26 | §2.8 added; open item #1 resolved to "extend `baobab-dev` Dockerfile with `--target frontend`, no new repo" | Explicit decision: avoid a second devcontainer repo; prefer lower maintenance burden over pipeline isolation |
 | 2026-08-26 | §2.8a added; development-environment contract adopts a `profile` concept (`full`/`frontend`); per-repo declaration renamed to `.nabhold/environment.yaml` across all five consuming repos | Explicit decision: consistency enables one shared validator instead of five bespoke checks; avoids four digital-estate repos each independently declaring (and drifting on) identical frontend tooling versions |
+| 2026-09-01 | §§2.1–2.3 amended and ADR-0003 added | Nabhold consumes Baobab ERP; estate ownership, legal-entity identity and platform tenancy are independent concerns |
 
 ---
 

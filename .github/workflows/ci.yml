@@ -54,17 +54,34 @@ on:
       - ".github/workflows/**"
       - ".github/actions/**"
       - ".github/dependabot.yml"
+      - "contracts/**"
+      - "docs/adr/**"
+      - "scripts/validate-governance-contracts.rb"
   pull_request:
     paths:
       - ".github/workflows/**"
       - ".github/actions/**"
       - ".github/dependabot.yml"
+      - "contracts/**"
+      - "docs/adr/**"
+      - "scripts/validate-governance-contracts.rb"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  governance-contracts:
+    name: Validate governance contracts
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate tenancy, identity, product and example invariants
+        run: ruby scripts/validate-governance-contracts.rb
+
   action-pinning:
     name: Enforce action pinning (self-check)
     permissions:

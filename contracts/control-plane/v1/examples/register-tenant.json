@@ -1,12 +1,11 @@
 {
-  "legal_entity_id": "zuribeans_za",
-  "tenant_id": "zuribeans_za",
+  "legal_entity_id": "ZURIBEANS",
+  "tenant_id": "tn_01k4m7x9q2v6c8r3d5f1h0j4",
   "display_name": "Zuribeans",
   "isolation_strategy": "schema_per_tenant",
   "residency_region": "af-south-1",
-  "requested_products": ["baobab_trade"],
+  "requested_products": ["baobab-trade"],
   "metadata": {
     "business_model": "b2b"
   }
 }
-

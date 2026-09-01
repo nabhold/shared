@@ -20,7 +20,7 @@
     "requested_products": {
       "type": "array",
       "uniqueItems": true,
-      "items": { "$ref": "domain.schema.json#/$defs/resourceId" },
+      "items": { "$ref": "domain.schema.json#/$defs/productId" },
       "default": []
     },
     "metadata": {
@@ -31,4 +31,3 @@
     }
   }
 }
-

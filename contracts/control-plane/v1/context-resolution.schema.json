@@ -8,7 +8,7 @@
       "additionalProperties": false,
       "required": ["product_id"],
       "properties": {
-        "product_id": { "$ref": "domain.schema.json#/$defs/resourceId" }
+        "product_id": { "$ref": "domain.schema.json#/$defs/productId" }
       }
     },
     "response": {
@@ -17,9 +17,9 @@
       "required": ["tenant_id", "entity_id", "lifecycle_status", "product_id", "entitled", "cache_ttl_seconds", "resolved_at", "correlation_id"],
       "properties": {
         "tenant_id": { "$ref": "domain.schema.json#/$defs/tenantId" },
-        "entity_id": { "type": "string", "minLength": 1, "maxLength": 63 },
+        "entity_id": { "$ref": "domain.schema.json#/$defs/legalEntityId" },
         "lifecycle_status": { "type": "string", "enum": ["provisioning", "active", "suspended", "decommissioning", "decommissioned"] },
-        "product_id": { "$ref": "domain.schema.json#/$defs/resourceId" },
+        "product_id": { "$ref": "domain.schema.json#/$defs/productId" },
         "entitled": { "const": true },
         "entitlement_tier": { "type": ["string", "null"], "maxLength": 63 },
         "cache_ttl_seconds": { "type": "integer", "minimum": 1, "maximum": 60 },

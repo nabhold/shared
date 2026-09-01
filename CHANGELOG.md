@@ -23,6 +23,9 @@ Changes that have been merged but have not yet been included in a released versi
 
 ## Added
 
+- ADR-0003 separating tenant, legal-entity and digital-estate identity.
+- Governance validation for canonical entity, tenant and product identifiers,
+  initial product-consumption intent and Control Plane examples.
 - Canonical control-plane context-resolution request and response schemas.
 - A machine-readable control-plane security policy covering token validation,
   scopes, transport trust, audit fields, and failure behaviour.
@@ -31,12 +34,20 @@ Changes that have been merged but have not yet been included in a released versi
 
 ## Changed
 
+- Nabhold now declares confirmed `baobab-erp` consumption. Its digital estate
+  remains independent from its separately provisioned tenant boundary.
+- Tenant identifiers are opaque `tn_` resource IDs, legal entities retain the
+  uppercase registry grammar, and canonical product IDs prefer kebab case.
+- The tenancy contract now records the legal entity as the default boundary
+  without treating legal entity and tenant as synonyms.
 - Access-token claims now require an explicit actor type and may identify an
   authorised party through `azp`.
 
 ## Deprecated
 
-Nothing yet.
+- Lowercase snake-case aliases for legal entities and underscore-form product
+  identifiers remain accepted by Control Plane v1 only for compatibility. New
+  records must use registry entity IDs and kebab-case product IDs.
 
 ## Removed
 
