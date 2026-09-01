@@ -1,0 +1,18 @@
+name: Foundation Repository Gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    uses: ./.github/workflows/foundation-repository-gates.yml
+    with:
+      dockerfile: ""

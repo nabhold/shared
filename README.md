@@ -9,6 +9,25 @@
 
 ---
 
+## Foundation 4 repository baseline
+
+This repository owns the reusable GitHub and contract-compatibility gates used
+across all eleven Nabhold repositories. Its Codespaces environment uses the
+`baobab-dev` v1.2.6 `frontend` profile because Shared builds Node-based contract
+packages but no deployable service.
+
+Every consuming repository must provide a `.nabhold/environment.yaml`, use an
+exact v1.2.6 development profile, commit dependency lockfiles, pin GitHub
+Actions to full commit SHAs, and call the reusable Foundation Repository Gates.
+Those gates perform dependency review, source/dependency/secret scanning,
+conditional container build scanning, environment-contract validation, and
+reproducibility checks. Branch protection remains a GitHub repository setting;
+the required check is named `foundation` and must be required on `main`.
+Administrators should apply the documented [Foundation 4 branch-protection
+ruleset](docs/governance/foundation-4-branch-protection.md).
+
+---
+
 ## Overview
 
 `nabhold/shared` is the central repository for **versioned organisational
