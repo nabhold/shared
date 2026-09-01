@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/erp/v1/business-partner-projection.schema.json",
+  "title": "ERP Business Partner projection",
+  "description": "ERP-owned Business Partner attributes for authorised consumers. A commerce customer remains identified by its Trade customer ID.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["legal_entity_id", "business_partner_id", "roles", "display_name", "status", "revision"],
+  "properties": {
+    "legal_entity_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/legalEntityId" },
+    "business_partner_id": { "$ref": "./domain.schema.json#/$defs/erpResourceId" },
+    "source_customer_id": { "$ref": "./domain.schema.json#/$defs/canonicalResourceId" },
+    "roles": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "type": "string", "enum": ["customer", "supplier", "employee", "other"] }
+    },
+    "display_name": { "type": "string", "minLength": 1, "maxLength": 255 },
+    "status": { "type": "string", "enum": ["active", "suspended", "closed"] },
+    "billing_country": { "$ref": "./domain.schema.json#/$defs/country" },
+    "default_currency": { "$ref": "./domain.schema.json#/$defs/currency" },
+    "revision": { "$ref": "./domain.schema.json#/$defs/version" }
+  }
+}

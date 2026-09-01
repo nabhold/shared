@@ -1,0 +1,293 @@
+schema:
+  name: baobab-erp-system-of-record
+  version: "1.0"
+  rule: No record is implicitly bidirectional; the declared process owner wins its attributes and corrections are explicit.
+
+concepts:
+  - concept: Tenant
+    canonical_owner: control-plane
+    producer: [control-plane]
+    consumers: [erp, trade, intelligence, digital-estates]
+    external_identifier: opaque tenant_id minted by the Control Plane
+    idempiere_representation: private temporal mapping only; never Client identity
+    medusa_representation: request and projection context only
+    synchronisation_direction: control-plane_to_engines
+    consistency: strong at admission; eventual lifecycle propagation
+    mechanism: context API and lifecycle events
+    conflict_resolution: Control Plane wins; unresolved or inactive context fails closed
+
+  - concept: Legal Entity
+    canonical_owner: shared
+    producer: [shared-governance]
+    consumers: [control-plane, erp, trade, infrastructure, digital-estates]
+    external_identifier: canonical legal_entity_id from the Shared registry
+    idempiere_representation: one or more private Organisation mappings where approved
+    medusa_representation: context metadata only
+    synchronisation_direction: shared_to_consumers
+    consistency: versioned governance consistency
+    mechanism: released registry and explicit mappings
+    conflict_resolution: Shared identity wins; name matching is forbidden
+
+  - concept: Organisation
+    canonical_owner: unassigned
+    producer: []
+    consumers: [erp, trade, reporting]
+    external_identifier: not minted until the organisation-model owner is approved
+    idempiere_representation: private explicit Organisation mapping where appropriate
+    medusa_representation: optional future context attribute
+    synchronisation_direction: none_until_contract_approved
+    consistency: unavailable
+    mechanism: deferred cross-engine contract
+    conflict_resolution: equality with tenant, legal entity or ERP Organisation is forbidden; ambiguous mappings are quarantined
+
+  - concept: User
+    canonical_owner: identity-provider
+    producer: [identity-provider, control-plane]
+    consumers: [erp, trade]
+    external_identifier: OIDC issuer plus subject
+    idempiere_representation: private user and role mapping
+    medusa_representation: authenticated actor or customer association
+    synchronisation_direction: identity_to_engines
+    consistency: strong authentication; eventual role projection
+    mechanism: OIDC/JWKS and explicit role mapping
+    conflict_resolution: identity provider owns identity; engine-local permissions may only deny additional access
+
+  - concept: Customer
+    canonical_owner: origin-scoped
+    producer: [trade, erp]
+    consumers: [erp, trade]
+    external_identifier: owner-namespaced customer ID
+    idempiere_representation: Business Partner customer role
+    medusa_representation: customer or company account
+    synchronisation_direction: origin_to_projection
+    consistency: eventual
+    mechanism: customer projection event or API
+    conflict_resolution: never merge by name or email; governed manual duplicate resolution
+
+  - concept: Business Partner
+    canonical_owner: erp
+    producer: [erp]
+    consumers: [trade, reporting]
+    external_identifier: Baobab ERP resource ID
+    idempiere_representation: Business Partner
+    medusa_representation: no canonical equivalent
+    synchronisation_direction: erp_to_authorised_consumers
+    consistency: eventual
+    mechanism: ERP API and events
+    conflict_resolution: ERP wins ERP-owned attributes
+
+  - concept: Supplier
+    canonical_owner: erp
+    producer: [erp]
+    consumers: [procurement, reporting]
+    external_identifier: Baobab ERP supplier ID
+    idempiere_representation: Business Partner vendor role
+    medusa_representation: none
+    synchronisation_direction: erp_to_authorised_consumers
+    consistency: ERP authoritative
+    mechanism: ERP API and events
+    conflict_resolution: governed matching and manual review; no name-only merge
+
+  - concept: Product
+    canonical_owner: origin-scoped
+    producer: [trade, erp]
+    consumers: [erp, trade]
+    external_identifier: owner-namespaced product ID
+    idempiere_representation: Product
+    medusa_representation: product
+    synchronisation_direction: origin_to_projection
+    consistency: eventual
+    mechanism: versioned product event or API
+    conflict_resolution: origin ownership is fixed per record
+
+  - concept: SKU
+    canonical_owner: origin-scoped
+    producer: [trade, erp]
+    consumers: [erp, trade, inventory]
+    external_identifier: owner-namespaced SKU ID; code is not identity
+    idempiere_representation: Product plus private mapping
+    medusa_representation: variant and SKU code
+    synchronisation_direction: origin_to_projection
+    consistency: eventual
+    mechanism: explicit mapping and versioned event
+    conflict_resolution: duplicate codes are rejected within their governed scope
+
+  - concept: Price
+    canonical_owner: process-scoped
+    producer: [trade, erp]
+    consumers: [storefront, erp, accounting]
+    external_identifier: price ID plus currency and validity
+    idempiere_representation: price list only where required for ERP processes
+    medusa_representation: commerce price set or list
+    synchronisation_direction: trade_snapshot_to_erp_for_commerce
+    consistency: immutable accepted-order snapshot
+    mechanism: commerce order contract and compensating version
+    conflict_resolution: Trade wins commerce selling price; ERP wins costs and non-commerce lists
+
+  - concept: Currency
+    canonical_owner: shared-reference-data
+    producer: [governed-reference-data]
+    consumers: [all-engines]
+    external_identifier: ISO 4217 alphabetic code
+    idempiere_representation: Currency reference
+    medusa_representation: currency code
+    synchronisation_direction: reference_to_engines
+    consistency: immutable transaction snapshot
+    mechanism: shared reference contract or governed configuration
+    conflict_resolution: invalid or unsupported code is rejected
+
+  - concept: Tax
+    canonical_owner: process-scoped
+    producer: [trade, erp]
+    consumers: [trade, erp, reporting]
+    external_identifier: governed jurisdiction and category references
+    idempiere_representation: statutory tax records and posting
+    medusa_representation: commerce quotation and provider projection
+    synchronisation_direction: quote_to_erp_then_posting_outcome_to_consumers
+    consistency: explicit exception handling
+    mechanism: immutable quoted-tax snapshot and ERP outcome
+    conflict_resolution: Trade owns quotation; ERP owns statutory determination; differences require review or correction documents
+
+  - concept: Sales Order
+    canonical_owner: process-scoped
+    producer: [trade, erp]
+    consumers: [erp, trade, finance]
+    external_identifier: Trade order ID plus Baobab ERP order mapping
+    idempiere_representation: Sales Order
+    medusa_representation: order
+    synchronisation_direction: trade_order_to_erp_and_erp_status_to_trade
+    consistency: eventual and idempotent by order version
+    mechanism: canonical events with query fallback
+    conflict_resolution: Trade owns commerce order; ERP owns enterprise consequence; amendment or compensation only
+
+  - concept: Purchase Order
+    canonical_owner: erp
+    producer: [erp]
+    consumers: [supplier, warehouse, finance]
+    external_identifier: Baobab ERP purchase-order ID
+    idempiere_representation: Purchase Order
+    medusa_representation: none
+    synchronisation_direction: erp_to_authorised_consumers
+    consistency: ERP authoritative
+    mechanism: ERP API and events
+    conflict_resolution: ERP revision wins
+
+  - concept: Invoice
+    canonical_owner: erp
+    producer: [erp]
+    consumers: [trade, digital-estates, reporting]
+    external_identifier: Baobab ERP invoice ID; document number is not identity
+    idempiere_representation: Invoice
+    medusa_representation: projection or reference only
+    synchronisation_direction: erp_to_authorised_consumers
+    consistency: posted invoices are immutable
+    mechanism: invoice outcome event and query API
+    conflict_resolution: corrections use credit or debit documents
+
+  - concept: Payment
+    canonical_owner: process-scoped
+    producer: [payment-provider, trade, erp]
+    consumers: [erp, trade, finance]
+    external_identifier: provider capture ID plus Baobab ERP payment mapping
+    idempiere_representation: Payment and allocation
+    medusa_representation: payment collection or session
+    synchronisation_direction: capture_to_erp_and_accounting_outcome_to_trade
+    consistency: eventual, idempotent and reconciled
+    mechanism: payment capture event and ERP accounting outcome
+    conflict_resolution: provider or Trade owns capture; ERP owns accounting and allocation; order status never implies capture
+
+  - concept: Inventory
+    canonical_owner: process-scoped
+    producer: [erp, trade]
+    consumers: [trade, warehouse, accounting]
+    external_identifier: ERP inventory transaction ID and Trade reservation ID
+    idempiere_representation: transaction, storage and valuation records
+    medusa_representation: reservation and availability projection
+    synchronisation_direction: erp_availability_to_trade_and_trade_demand_to_erp
+    consistency: eventual with explicit reconciliation
+    mechanism: availability events, order demand and query API
+    conflict_resolution: ERP owns physical and financial stock; Trade owns commerce reservations; quantity overwrite is forbidden
+
+  - concept: Warehouse
+    canonical_owner: erp
+    producer: [erp]
+    consumers: [trade, procurement]
+    external_identifier: Baobab ERP warehouse ID
+    idempiere_representation: Warehouse
+    medusa_representation: fulfilment or stock-location projection
+    synchronisation_direction: erp_to_trade
+    consistency: eventual configuration propagation
+    mechanism: warehouse projection event and mapping contract
+    conflict_resolution: ERP wins physical warehouse attributes
+
+  - concept: Shipment
+    canonical_owner: process-scoped
+    producer: [erp, trade]
+    consumers: [erp, trade, digital-estates]
+    external_identifier: Baobab ERP shipment ID plus Trade fulfilment ID
+    idempiere_representation: Material Receipt or Shipment
+    medusa_representation: fulfilment
+    synchronisation_direction: trade_instruction_to_erp_and_erp_movement_status_to_trade
+    consistency: eventual state mapping
+    mechanism: explicit instruction and outcome events
+    conflict_resolution: ERP owns goods movement; Trade owns customer fulfilment experience; invalid transitions are quarantined
+
+  - concept: Accounting Entry
+    canonical_owner: erp
+    producer: [erp]
+    consumers: [finance, reporting, consolidation]
+    external_identifier: Baobab ERP posting ID
+    idempiere_representation: accounting fact and source document
+    medusa_representation: none
+    synchronisation_direction: erp_to_authorised_consumers
+    consistency: append or adjust; never externally mutated
+    mechanism: read API and events
+    conflict_resolution: ERP wins; corrections are adjustment documents
+
+  - concept: Asset
+    canonical_owner: erp
+    producer: [erp]
+    consumers: [finance, operations, reporting]
+    external_identifier: Baobab ERP asset ID
+    idempiere_representation: Asset
+    medusa_representation: none
+    synchronisation_direction: erp_to_authorised_consumers
+    consistency: ERP authoritative
+    mechanism: ERP API and events
+    conflict_resolution: ERP wins
+
+  - concept: Market
+    canonical_owner: trade
+    producer: [trade]
+    consumers: [digital-estates, erp]
+    external_identifier: Trade market ID pending a portable Shared market contract
+    idempiere_representation: mapping or configuration only
+    medusa_representation: market, region and sales-channel configuration
+    synchronisation_direction: trade_to_consumers
+    consistency: eventual
+    mechanism: market contract when approved
+    conflict_resolution: Trade wins commerce configuration; country is never assumed to equal market
+
+  - concept: Region
+    canonical_owner: shared-reference-data
+    producer: [governed-reference-data]
+    consumers: [all-engines]
+    external_identifier: canonical region ID when published
+    idempiere_representation: mapping or configuration
+    medusa_representation: region configuration
+    synchronisation_direction: reference_to_engines
+    consistency: versioned
+    mechanism: future Shared reference taxonomy
+    conflict_resolution: engine-specific operational groups cannot redefine portable identity
+
+  - concept: Country
+    canonical_owner: shared-reference-data
+    producer: [governed-reference-data]
+    consumers: [all-engines]
+    external_identifier: ISO 3166-1 alpha-2 code
+    idempiere_representation: Country reference
+    medusa_representation: address or region country code
+    synchronisation_direction: reference_to_engines
+    consistency: versioned reference data
+    mechanism: governed localisation data
+    conflict_resolution: invalid or unsupported code is rejected; no default country is inferred

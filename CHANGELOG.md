@@ -36,6 +36,11 @@ Changes that have been merged but have not yet been included in a released versi
   scopes, transport trust, audit fields, and failure behaviour.
 - OIDC-protected management and workload operations in the control-plane
   OpenAPI contract.
+- Vendor-neutral Baobab ERP OpenAPI and AsyncAPI contracts for provisioning,
+  mappings, Trade order/customer inputs, and ERP order, inventory, warehouse,
+  invoice and payment-accounting outcomes.
+- A machine-readable ERP system-of-record matrix, international value schemas,
+  compatibility fixtures, validation gate and ADR-0005.
 
 ## Changed
 

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/erp/v1/invoice-outcome.schema.json",
+  "title": "ERP invoice outcome",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["legal_entity_id", "invoice_id", "invoice_number", "commerce_order_id", "status", "total", "issued_at", "revision"],
+  "properties": {
+    "legal_entity_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/legalEntityId" },
+    "invoice_id": { "$ref": "./domain.schema.json#/$defs/erpResourceId" },
+    "invoice_number": { "type": "string", "minLength": 1, "maxLength": 96, "description": "Human-facing document number; not an identity." },
+    "commerce_order_id": { "$ref": "./domain.schema.json#/$defs/canonicalResourceId" },
+    "status": { "type": "string", "enum": ["draft", "posted", "paid", "partially_paid", "voided", "credited"] },
+    "total": { "$ref": "./domain.schema.json#/$defs/money" },
+    "outstanding": { "$ref": "./domain.schema.json#/$defs/money" },
+    "issued_at": { "$ref": "./domain.schema.json#/$defs/timestamp" },
+    "due_on": { "type": "string", "format": "date" },
+    "revision": { "$ref": "./domain.schema.json#/$defs/version" }
+  }
+}

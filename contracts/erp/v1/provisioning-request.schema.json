@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/erp/v1/provisioning-request.schema.json",
+  "title": "ERP provisioning request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "legal_entity_ids", "requested_countries", "functional_currencies"],
+  "properties": {
+    "tenant_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/tenantId" },
+    "legal_entity_ids": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/legalEntityId" }
+    },
+    "requested_countries": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "$ref": "./domain.schema.json#/$defs/country" }
+    },
+    "functional_currencies": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "$ref": "./domain.schema.json#/$defs/currency" }
+    },
+    "deployment_policy_id": {
+      "$ref": "./domain.schema.json#/$defs/canonicalResourceId",
+      "description": "Opaque reference to an infrastructure-governed policy; this contract does not prescribe shared or dedicated topology."
+    },
+    "localisation_profile_ids": {
+      "type": "array", "uniqueItems": true,
+      "items": { "$ref": "./domain.schema.json#/$defs/canonicalResourceId" }
+    }
+  }
+}

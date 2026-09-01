@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/erp/v1/warehouse-projection.schema.json",
+  "title": "ERP warehouse projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["legal_entity_id", "warehouse_id", "code", "name", "country", "timezone", "status", "revision"],
+  "properties": {
+    "legal_entity_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/legalEntityId" },
+    "warehouse_id": { "$ref": "./domain.schema.json#/$defs/erpResourceId" },
+    "code": { "type": "string", "minLength": 1, "maxLength": 64, "description": "Mutable business code; not an identity." },
+    "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+    "country": { "$ref": "./domain.schema.json#/$defs/country" },
+    "timezone": { "type": "string", "pattern": "^[A-Za-z_]+(?:/[A-Za-z0-9_+.-]+)+$", "maxLength": 64 },
+    "status": { "type": "string", "enum": ["active", "inactive"] },
+    "revision": { "$ref": "./domain.schema.json#/$defs/version" }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "specversion": "1.0",
+  "id": "f1f1cc26-a41d-48fd-98e9-f2b994ddff21",
+  "type": "com.nabhold.erp.invoice.changed.v1",
+  "source": "urn:nabhold:service:baobab-erp",
+  "subject": "invoice:erp_01k4n7bq",
+  "time": "2026-09-01T10:00:04Z",
+  "datacontenttype": "application/json",
+  "dataschema": "https://contracts.nabhold.com/erp/v1/invoice-outcome.schema.json",
+  "baobabscope": "tenant",
+  "correlationid": "ea733cd4-0daa-4c52-89f8-a940cfa8a1ac",
+  "causationid": "04ac0f78-b5f5-4a50-9296-39264d533433",
+  "tenantid": "tn_01k4m7x9q2v6c8r3d5f1h0j4",
+  "data": {
+    "legal_entity_id": "ZURIBEANS",
+    "invoice_id": "erp_01k4n7bq",
+    "invoice_number": "INV-2026-000184",
+    "commerce_order_id": "order_01k4n6w5",
+    "status": "posted",
+    "total": { "amount": "324.00", "currency": "USD" },
+    "outstanding": { "amount": "324.00", "currency": "USD" },
+    "issued_at": "2026-09-01T10:00:04Z",
+    "due_on": "2026-10-01",
+    "revision": 1
+  }
+}

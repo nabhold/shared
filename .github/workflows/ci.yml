@@ -59,6 +59,7 @@ on:
       - "docs/architecture/**"
       - "scripts/validate-governance-contracts.rb"
       - "scripts/validate-cross-engine-contracts.rb"
+      - "scripts/validate-erp-contracts.rb"
   pull_request:
     paths:
       - ".github/workflows/**"
@@ -69,6 +70,7 @@ on:
       - "docs/architecture/**"
       - "scripts/validate-governance-contracts.rb"
       - "scripts/validate-cross-engine-contracts.rb"
+      - "scripts/validate-erp-contracts.rb"
   workflow_dispatch:
 
 permissions:
@@ -87,6 +89,8 @@ jobs:
         run: ruby scripts/validate-governance-contracts.rb
       - name: Validate event, error, trace and idempotency invariants
         run: ruby scripts/validate-cross-engine-contracts.rb
+      - name: Validate ERP boundary and system-of-record invariants
+        run: ruby scripts/validate-erp-contracts.rb
 
   action-pinning:
     name: Enforce action pinning (self-check)

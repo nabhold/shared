@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/erp/v1/customer-projection.schema.json",
+  "title": "Commerce customer projection for ERP",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["legal_entity_id", "customer_id", "customer_version", "customer_type", "display_name", "status"],
+  "properties": {
+    "legal_entity_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/legalEntityId" },
+    "customer_id": { "$ref": "./domain.schema.json#/$defs/canonicalResourceId" },
+    "customer_version": { "$ref": "./domain.schema.json#/$defs/version" },
+    "customer_type": { "type": "string", "enum": ["person", "organisation"] },
+    "display_name": { "type": "string", "minLength": 1, "maxLength": 255 },
+    "status": { "type": "string", "enum": ["active", "suspended", "closed"] },
+    "billing_country": { "$ref": "./domain.schema.json#/$defs/country" },
+    "preferred_currency": { "$ref": "./domain.schema.json#/$defs/currency" },
+    "tax_registration_references": {
+      "type": "array", "uniqueItems": true,
+      "items": { "$ref": "./domain.schema.json#/$defs/canonicalResourceId" },
+      "description": "References to access-controlled tax identity records; raw registration values are not propagated in this event."
+    }
+  }
+}

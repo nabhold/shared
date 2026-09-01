@@ -1,0 +1,224 @@
+openapi: 3.1.0
+info:
+  title: Nabhold Baobab ERP Boundary API
+  version: 1.0.0
+  description: Vendor-neutral synchronous provisioning and query contract. Business state propagation uses the ERP AsyncAPI contract.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: https://erp.nabhold.com/v1
+    description: Production placeholder; activation requires an approved domain binding.
+security:
+  - workloadOidc: [erp:read]
+x-baobab-context-contract: ../../control-plane/v1/access-token-claims.schema.json
+paths:
+  /provisioning-operations:
+    post:
+      operationId: requestErpProvisioning
+      summary: Request configuration-driven ERP capability provisioning
+      security:
+        - workloadOidc: [erp:provision]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/Traceparent"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: ./provisioning-request.schema.json }
+      responses:
+        "202":
+          description: Provisioning accepted or the prior idempotent result returned
+          content:
+            application/json:
+              schema: { $ref: ./provisioning-state.schema.json }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /provisioning-operations/{operation_id}:
+    get:
+      operationId: getErpProvisioningOperation
+      summary: Query current provisioning state
+      parameters:
+        - $ref: "#/components/parameters/OperationId"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/Traceparent"
+      responses:
+        "200":
+          description: Current operation state
+          content:
+            application/json:
+              schema: { $ref: ./provisioning-state.schema.json }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /mappings/{mapping_id}:
+    get:
+      operationId: getErpMapping
+      summary: Query public canonical-to-ERP mapping metadata
+      description: Vendor bindings and iDempiere internal identifiers are never returned.
+      parameters:
+        - $ref: "#/components/parameters/MappingId"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/Traceparent"
+      responses:
+        "200":
+          description: Mapping visible within the authorised tenant context
+          content:
+            application/json:
+              schema: { $ref: ./mapping.schema.json }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /mappings:
+    get:
+      operationId: findErpMappings
+      summary: Find every active or historical ERP mapping for one canonical resource
+      description: A canonical resource may have several temporal ERP mappings. Results never expose vendor bindings.
+      parameters:
+        - name: owner
+          in: query
+          required: true
+          schema: { $ref: ./domain.schema.json#/$defs/canonicalReference/properties/owner }
+        - name: resource_type
+          in: query
+          required: true
+          schema: { $ref: ./domain.schema.json#/$defs/canonicalReference/properties/resource_type }
+        - name: resource_id
+          in: query
+          required: true
+          schema: { $ref: ./domain.schema.json#/$defs/canonicalResourceId }
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/Traceparent"
+      responses:
+        "200":
+          description: Authorised temporal mappings, including an empty result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MappingCollection" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /order-consequences/{commerce_order_id}:
+    get:
+      operationId: getOrderConsequenceStatus
+      summary: Query the latest ERP consequence status for a Trade order
+      parameters:
+        - $ref: "#/components/parameters/CommerceOrderId"
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/Traceparent"
+      responses:
+        "200":
+          description: Latest status projection
+          content:
+            application/json:
+              schema: { $ref: ./order-consequence-status.schema.json }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /inventory-availability:
+    get:
+      operationId: queryInventoryAvailability
+      summary: Query an ERP-owned physical availability projection
+      parameters:
+        - name: sku_id
+          in: query
+          required: true
+          schema: { $ref: ./domain.schema.json#/$defs/canonicalResourceId }
+        - name: warehouse_id
+          in: query
+          required: true
+          schema: { $ref: ./domain.schema.json#/$defs/erpResourceId }
+        - $ref: "#/components/parameters/CorrelationId"
+        - $ref: "#/components/parameters/Traceparent"
+      responses:
+        "200":
+          description: Current physical availability; Trade reservations remain Trade-owned
+          content:
+            application/json:
+              schema: { $ref: ./inventory-availability.schema.json }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        minLength: 16
+        maxLength: 128
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: false
+      schema: { type: string, format: uuid }
+    Traceparent:
+      name: traceparent
+      in: header
+      required: false
+      schema:
+        type: string
+        pattern: "^00-(?!00000000000000000000000000000000)[0-9a-f]{32}-(?!0000000000000000)[0-9a-f]{16}-[0-9a-f]{2}$"
+    OperationId:
+      name: operation_id
+      in: path
+      required: true
+      schema: { $ref: ./domain.schema.json#/$defs/operationId }
+    MappingId:
+      name: mapping_id
+      in: path
+      required: true
+      schema: { $ref: ./domain.schema.json#/$defs/mappingId }
+    CommerceOrderId:
+      name: commerce_order_id
+      in: path
+      required: true
+      schema: { $ref: ./domain.schema.json#/$defs/canonicalResourceId }
+  schemas:
+    ProblemDetails: { $ref: ../../errors/v1/problem-details.schema.json }
+    MappingCollection:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 100
+          items: { $ref: ./mapping.schema.json }
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetails" }
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetails" }
+    Forbidden:
+      description: Tenant, entitlement or authority denied
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetails" }
+    NotFound:
+      description: Resource not found within the authorised tenant context
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetails" }
+    Conflict:
+      description: Incompatible state or idempotency replay
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetails" }
+  securitySchemes:
+    workloadOidc:
+      type: openIdConnect
+      openIdConnectUrl: https://identity.nabhold.com/.well-known/openid-configuration
+      description: Short-lived workload or delegated identity token transported over the infrastructure-owned mTLS path. The resolved tenant claim is authoritative; any tenant_id in a request must match it.
