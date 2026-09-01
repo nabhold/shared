@@ -25,7 +25,9 @@
 # Governance tier
 # ----------------
 # This is a GOVERNANCE contract (see ADR-0001 section 2.5): it declares
-# identity and obligations, not implementation. It must never contain cloud
+# identity and approved product-consumption intent, not runtime tenancy state
+# or implementation. The Control Plane remains authoritative for provisioned
+# tenants and enforced entitlements. This registry must never contain cloud
 # resource names, database connection strings, or infrastructure specifics.
 #
 # Versioning
@@ -67,15 +69,20 @@ entities:
     business_model: null          # not applicable — holding company, not an
                                    # operating subsidiary
 
-    baobab_tenant: false          # Nabhold consumes no Baobab product; it is
-                                   # not a tenant of the platform it owns
-                                   # (see ADR-0001 section 2.1)
+    baobab_tenant: true           # Approved consumption intent. The Control
+                                   # Plane must still provision a distinct
+                                   # tenant_id and ERP entitlement; this value
+                                   # does not make entity_id a tenant identity.
 
     digital_estate:
       repository: "nabhold/nabhold"
       status: "planned"           # repository created, implementation pending
 
-    baobab_products: []           # intentionally empty — not a tenant
+    baobab_products:
+      - product: "baobab-erp"
+        confirmed: true           # approved 2026-09-01: the holding company
+                                   # requires ERP capability independently of
+                                   # its corporate digital estate
 
   # ---------------------------------------------------------------------------
   - id: "ZURIBEANS"
@@ -164,6 +171,15 @@ cross_cutting_products:
 # ------------------------------------------------------------------------------
 
 notes:
+  - >
+    `baobab_tenant` records approved platform-consumption intent for bootstrap
+    and reconciliation. It is not runtime tenant state. `nabhold/baobab-cp`
+    owns the provisioned tenant_id, lifecycle and enforced product
+    entitlements, and must map them explicitly to an entity id in this registry.
+  - >
+    A digital estate does not confer tenancy. NABHOLD is tenant-eligible because
+    it consumes Baobab ERP, not because `nabhold/nabhold` exists. The estate and
+    ERP tenant may be deployed, released and secured independently.
   - >
     This registry declares identity, not infrastructure. It must not be
     extended with cloud resource identifiers, connection strings, or

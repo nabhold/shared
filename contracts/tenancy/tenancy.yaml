@@ -16,30 +16,31 @@
 #
 #   shared          -> declares the obligation
 #                       ("tenant data MUST be isolated")
-#   baobab          -> implements the tenancy model
-#                       (tenant resolution, tenant context, tenant-aware APIs)
+#   baobab-cp       -> owns tenant lifecycle, entitlement and context
+#   product engines -> enforce resolved tenant context in their own boundaries
 #   infrastructure  -> enforces the physical controls
 #                       (network boundaries, secrets, storage isolation)
 #
 # It MUST NOT specify:
 #   - a database isolation strategy (schema-per-tenant vs. row-level vs.
-#     database-per-tenant) — that is a `baobab` architecture decision
+#     database-per-tenant) — that is a product-engine architecture decision
 #   - a cloud resource, namespace, or credential — that is an
 #     `infrastructure` decision
 #
 # Relationship to other contracts
 # --------------------------------
-#   legal-entity/registry.yaml  -> supplies the canonical `entity_id` that
-#                                  every tenant record MUST reference
+#   legal-entity/registry.yaml  -> supplies canonical legal-entity identity;
+#                                  a tenant mapping references it without
+#                                  becoming identical to it
 #   security/ (not yet written) -> supplies the detailed encryption/auditing
 #                                  standards this contract only references
 #
 # Versioning
 # ----------
-# The contract schema is versioned independently of `baobab`'s tenancy
-# implementation and of any individual tenant's data.
+# The contract schema is versioned independently of Control Plane and
+# product-engine implementations and of any individual tenant's data.
 #
-# Governing decision record: ADR-0001 (nabhold/shared/docs/adr/)
+# Governing decision records: ADR-0001 and ADR-0003 (nabhold/shared/docs/adr/)
 # ==============================================================================
 
 schema:
@@ -53,17 +54,31 @@ schema:
 tenant_definition:
 
   description: >
-    A tenant is a legal entity, listed in the canonical legal-entity registry
-    with `baobab_tenant: true`, that consumes one or more Baobab products
-    under its own isolated operational context. A legal entity's independent
-    digital estate (its own website/frontend repository) is a SEPARATE
-    concern from its status as a Baobab tenant — the two are related only
-    through the shared `entity_id` (see ADR-0001 section 2.1: "a legal
-    entity may consume Baobab as a tenant without its digital estate
-    becoming part of Baobab").
+    A tenant is a platform security, data-isolation and product-entitlement
+    boundary established for a consuming organisation. A legal entity is the
+    default tenant boundary, but legal entity and tenant are not synonyms.
+    The canonical tenant record is owned by the Baobab Control Plane and maps
+    explicitly to the legal entity or entities whose operations it serves.
+    A legal entity's independent digital estate is a separate deployment and
+    ownership concern: operating a digital estate neither creates nor forbids
+    a tenant, while consuming a Baobab product requires an authorised tenant
+    and entitlement.
 
-  requires_registry_entry: true
+  legal_entity_is_default_boundary: true
+  legal_entity_is_tenant_synonym: false
+  digital_estate_confers_tenancy: false
+  product_consumption_requires_tenant: true
+  requires_default_legal_entity_registry_entry: true
   registry_source: "shared/contracts/legal-entity/registry.yaml"
+
+  cardinality:
+    tenant_to_legal_entity: "one_or_more_by_explicit_mapping"
+    legal_entity_to_tenant: "one_or_more_when_approved_isolation_requires_it"
+    description: >
+      Version 1 requires one default legal-entity reference for compatibility,
+      but consumers must not encode a permanent one-to-one identity. Additional
+      mappings and stronger isolation topologies may be introduced without
+      changing either canonical identifier.
 
 # ------------------------------------------------------------------------------
 # Required identifiers
@@ -75,24 +90,26 @@ identifiers:
     required: true
     source: "legal-entity registry"
     description: >
-      The canonical, immutable business identifier (e.g. "THAMANI-GLOBAL").
-      Every tenant record, in every system, MUST carry this value. No system
-      may invent a local alias for it.
+      The canonical, immutable identifier of the tenant's default legal entity
+      (e.g. "THAMANI-GLOBAL"). Every version-1 tenant record MUST carry this
+      mapping. It does not define the tenant and must not be reused as
+      tenant_id. No system may invent a local alias for it.
+    format: "^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*$"
 
   tenant_id:
     required: true
     description: >
-      A platform-internal technical identifier (opaque, e.g. UUID), distinct
-      from `entity_id`. Its purpose is to decouple internal data-model keys
-      from the business identifier, so that a correction to legal-entity
-      metadata never requires a database migration of tenant-scoped data.
+      An opaque platform-internal technical identifier, distinct from
+      `entity_id`. New identifiers use the `tn_` prefix followed by an opaque
+      lowercase token that satisfies the Control Plane resource-ID grammar.
+      Human-readable company names, country codes and market codes must not be
+      embedded in a newly minted tenant_id.
     mapping_obligation: >
       The mapping tenant_id -> entity_id MUST be resolvable at all times, in
       every environment, without exception. Loss of this mapping is treated
       as a data-integrity incident.
-    exact_format: null   # TBD — left to baobab's implementation (e.g. UUIDv4
-                          # vs. ULID); this contract only mandates that one
-                          # exists and is immutable once assigned
+    exact_format: "^tn_[a-z0-9]+$"
+    schema_reference: "shared/contracts/control-plane/v1/domain.schema.json#/$defs/tenantId"
 
 # ------------------------------------------------------------------------------
 # Isolation obligations
@@ -116,8 +133,8 @@ isolation:
   tenant_context_propagation:
     obligation: >
       Tenant context MUST be established at the point of authentication and
-      MUST propagate through every internal call (gRPC) and external query
-      (GraphQL) without relying on the caller to supply it voluntarily.
+      MUST propagate through every authorised engine call and event without
+      relying on an untrusted caller to supply it voluntarily.
       A request that cannot resolve a tenant context MUST be rejected, not
       defaulted to a "no tenant" state.
 
@@ -135,7 +152,7 @@ isolation:
 required_metadata:
 
   - field: "entity_id"
-    description: "Canonical business identifier, from the legal-entity registry"
+    description: "Canonical default legal-entity identifier from the registry; not the tenant identifier"
 
   - field: "tenant_id"
     description: "Platform-internal technical identifier"
@@ -231,7 +248,10 @@ ownership:
     owner: "nabhold/shared"
 
   tenancy_model_implementation:
-    owner: "nabhold/baobab"
+    owner: "nabhold/baobab-cp"
+
+  tenant_boundary_enforcement:
+    owner: "each Baobab product engine"
 
   physical_isolation_enforcement:
     owner: "nabhold/infrastructure"
@@ -243,9 +263,8 @@ ownership:
 notes:
   - >
     This contract intentionally does not choose a database isolation
-    strategy. That decision belongs to `nabhold/baobab` and should be
-    recorded in that repository's own architecture documentation (or a
-    follow-up ADR), justified against the obligations stated here.
+    strategy. Each product engine records its chosen mechanism in its own
+    architecture documentation and justifies it against these obligations.
   - >
     `applicable_regime` and `retention_period` are left null deliberately.
     Populating them with an assumed jurisdiction or a plausible-sounding

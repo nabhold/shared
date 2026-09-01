@@ -13,8 +13,30 @@
       "type": "string",
       "format": "uuid"
     },
-    "legalEntityId": { "$ref": "#/$defs/resourceId" },
+    "legalEntityId": {
+      "type": "string",
+      "oneOf": [
+        {
+          "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*$",
+          "description": "Canonical legal-entity identifier from contracts/legal-entity/registry.yaml."
+        },
+        {
+          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$",
+          "deprecated": true,
+          "description": "Legacy control-plane alias accepted during the v1 compatibility window only. New records must use the canonical registry identifier."
+        }
+      ],
+      "minLength": 3,
+      "maxLength": 63
+    },
     "tenantId": { "$ref": "#/$defs/resourceId" },
+    "productId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$",
+      "minLength": 3,
+      "maxLength": 63,
+      "description": "Version-1 product identifier. Canonical engine products use kebab case; underscore aliases remain accepted during migration."
+    },
     "estateId": { "$ref": "#/$defs/resourceId" },
     "environment": {
       "type": "string",
@@ -22,4 +44,3 @@
     }
   }
 }
-

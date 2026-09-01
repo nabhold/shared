@@ -1,10 +1,10 @@
 {
-  "request": { "product_id": "baobab_trade" },
+  "request": { "product_id": "baobab-trade" },
   "response": {
-    "tenant_id": "zuribeans_za",
+    "tenant_id": "tn_01k4m7x9q2v6c8r3d5f1h0j4",
     "entity_id": "ZURIBEANS",
     "lifecycle_status": "active",
-    "product_id": "baobab_trade",
+    "product_id": "baobab-trade",
     "entitled": true,
     "entitlement_tier": "standard",
     "cache_ttl_seconds": 15,
