@@ -23,6 +23,11 @@ Changes that have been merged but have not yet been included in a released versi
 
 ## Added
 
+- Canonical CloudEvents 1.0 cross-engine envelope with tenant scope,
+  correlation, causation, idempotency and W3C trace metadata.
+- RFC 9457 problem-details schema and example for consistent API errors.
+- Organisation-wide command/event idempotency policy, compatibility fixtures,
+  validation gate and ADR-0004.
 - ADR-0003 separating tenant, legal-entity and digital-estate identity.
 - Governance validation for canonical entity, tenant and product identifiers,
   initial product-consumption intent and Control Plane examples.
@@ -34,6 +39,8 @@ Changes that have been merged but have not yet been included in a released versi
 
 ## Changed
 
+- Control Plane lifecycle events and error responses now consume the canonical
+  cross-engine contracts instead of defining local metadata shapes.
 - Nabhold now declares confirmed `baobab-erp` consumption. Its digital estate
   remains independent from its separately provisioned tenant boundary.
 - Tenant identifiers are opaque `tn_` resource IDs, legal entities retain the

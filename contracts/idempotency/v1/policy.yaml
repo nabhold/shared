@@ -1,0 +1,43 @@
+schema:
+  name: nabhold-idempotency-policy
+  version: "1.0"
+
+http_commands:
+  applies_when: "An operation can create or change state or trigger an external business consequence."
+  header: Idempotency-Key
+  key:
+    min_length: 16
+    max_length: 128
+    allowed_pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    forbidden_content: [credentials, secrets, personal_data, business_payload]
+  scope: [service, operation, tenant_id, idempotency_key]
+  request_fingerprint:
+    required: true
+    rule: "Bind the key to the authorised principal and canonical request semantics."
+  replay:
+    same_request: return_original_terminal_result
+    incompatible_request:
+      status: 409
+      error_code: IDEMPOTENCY_KEY_REUSED
+  concurrency: "Serialize or atomically arbitrate concurrent requests with the same scoped key."
+  retention: "Retain records beyond the maximum documented client retry window; each operation owns its explicit duration."
+
+events:
+  delivery_identity: [source, id]
+  retry_rule: "Every delivery retry preserves the original source and id."
+  consumer_transaction: "Persist the inbox key and business effect atomically where the storage technology permits."
+  duplicate_rule: "A duplicate is acknowledged without repeating the business or financial effect."
+  command_consequence:
+    envelope_attribute: idempotencykey
+    required_when: "The event is a consequence of an idempotent command."
+    scope: [type, tenantid, idempotencykey]
+  ordering: "Do not infer global ordering. Domain payload contracts must define aggregate revision or sequence semantics when needed."
+
+failures:
+  transient: bounded_retry_with_backoff_and_jitter
+  poison_or_incompatible: quarantine_or_dead_letter
+  replay: "Authorised replay preserves the event identity and records the operator, reason and outcome."
+
+security:
+  log_keys: false
+  expose_cross_tenant_existence: false

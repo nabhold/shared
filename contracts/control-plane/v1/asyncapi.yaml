@@ -1,8 +1,8 @@
 asyncapi: 3.1.0
 info:
   title: Nabhold control-plane events
-  version: 1.0.0
-  description: Versioned tenant lifecycle events published by baobab-cp.
+  version: 1.1.0
+  description: Versioned tenant lifecycle events using the canonical Baobab cross-engine envelope.
 defaultContentType: application/json
 channels:
   tenantLifecycle:
@@ -27,14 +27,7 @@ components:
           - type: object
             properties:
               data:
-                type: object
-                additionalProperties: false
-                required: [operation_id, tenant_id, isolation_strategy, revision]
-                properties:
-                  operation_id: { type: string, format: uuid }
-                  tenant_id: { $ref: ./domain.schema.json#/$defs/tenantId }
-                  isolation_strategy: { type: string, enum: [schema_per_tenant, row_level_security] }
-                  revision: { type: integer, minimum: 1 }
+                $ref: ./provisioning-started.schema.json
     ProvisioningStateChanged:
       name: com.nabhold.control-plane.tenant.provisioning-state-changed.v1
       payload:
@@ -43,13 +36,4 @@ components:
           - type: object
             properties:
               data:
-                type: object
-                additionalProperties: false
-                required: [operation_id, tenant_id, previous_state, state, revision]
-                properties:
-                  operation_id: { type: string, format: uuid }
-                  tenant_id: { $ref: ./domain.schema.json#/$defs/tenantId }
-                  previous_state: { type: string }
-                  state: { type: string }
-                  revision: { type: integer, minimum: 1 }
-                  failure_code: { type: [string, "null"] }
+                $ref: ./provisioning-state-changed.schema.json

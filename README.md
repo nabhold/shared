@@ -277,14 +277,16 @@ Scripts should remain:
 
 `contracts/` holds the agreed shapes that more than one repository or service depends on. This is what keeps independently developed services interoperable without runtime coordination.
 
-Contracts may include:
+Current cross-engine contracts include:
 
-- **OpenAPI / Swagger specifications** for any service consumed by another repository or an external client.
-- **AsyncAPI specifications** for event and message payloads (queue/topic contracts), once more than one service publishes or consumes events.
+- **OpenAPI specifications** for Control Plane operations consumed by other engines.
+- **AsyncAPI specifications** for Control Plane lifecycle messages.
+- **The canonical CloudEvents 1.0 envelope** in `contracts/events/v1`, including tenant scope, correlation, causation, idempotency and W3C trace context.
+- **RFC 9457 problem details** in `contracts/errors/v1` for cross-engine HTTP errors.
+- **Command and event idempotency rules** in `contracts/idempotency/v1`.
 - **JSON Schema definitions** for shared data shapes — e.g. tenant object, user object, audit event.
 - **GraphQL schema fragments and shared types**, where applicable.
 - **gRPC / Protocol Buffer definitions**, for service-to-service calls that require them.
-- **Standard error-response contracts** — a single agreed shape (code, message, field-level errors) for API errors across every NABHOLD service, plus a namespaced error-code registry.
 - **Identifier and claim contracts** — JWT claim shapes, OIDC scope definitions, tenant/session object shape.
 
 A contract is a promise to consumers. Changing one is equivalent to changing a public API and must follow the same versioning and backwards-compatibility discipline as a reusable workflow (see [Design Principles](#design-principles) and [Versioning Strategy](#versioning-strategy)).
@@ -744,13 +746,14 @@ shared/
 │   └── dependabot.yml
 │
 ├── contracts/
-│   ├── openapi/
-│   ├── asyncapi/
-│   ├── schemas/
-│   │   ├── errors/
-│   │   ├── identity/
-│   │   └── audit/
-│   └── graphql/
+│   ├── control-plane/v1/
+│   ├── development-environment/
+│   ├── errors/v1/
+│   ├── events/v1/
+│   ├── idempotency/v1/
+│   ├── infrastructure/v1/
+│   ├── legal-entity/
+│   └── tenancy/
 │
 ├── packages/
 │   ├── eslint-config/

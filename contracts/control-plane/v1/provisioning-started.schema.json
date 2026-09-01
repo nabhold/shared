@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/control-plane/v1/provisioning-started.schema.json",
+  "title": "Tenant provisioning started payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operation_id", "tenant_id", "isolation_strategy", "revision"],
+  "properties": {
+    "operation_id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "$ref": "domain.schema.json#/$defs/tenantId" },
+    "isolation_strategy": {
+      "type": "string",
+      "enum": ["schema_per_tenant", "row_level_security"]
+    },
+    "revision": { "type": "integer", "minimum": 1 }
+  }
+}
