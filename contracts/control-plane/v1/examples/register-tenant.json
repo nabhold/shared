@@ -1,6 +1,5 @@
 {
   "legal_entity_id": "ZURIBEANS",
-  "tenant_id": "tn_01k4m7x9q2v6c8r3d5f1h0j4",
   "display_name": "Zuribeans",
   "isolation_strategy": "schema_per_tenant",
   "residency_region": "af-south-1",
