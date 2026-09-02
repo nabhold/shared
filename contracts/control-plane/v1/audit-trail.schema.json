@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/control-plane/v1/audit-trail.schema.json",
+  "title": "Audit Trail and Approval Workflow",
+  "description": "Immutable audit logs and four-eyes approval workflow for critical control plane operations (§48-49).",
+  "$defs": {
+    "auditEventType": {
+      "type": "string",
+      "enum": [
+        "mapping.created",
+        "mapping.updated",
+        "mapping.validated",
+        "mapping.activated",
+        "mapping.suspended",
+        "mapping.retired",
+        "market.created",
+        "market.updated",
+        "market.activated",
+        "tenant.created",
+        "tenant.provisioned",
+        "tenant.suspended",
+        "approval.requested",
+        "approval.granted",
+        "approval.denied"
+      ],
+      "description": "Type of auditable event."
+    },
+    "auditLogEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "audit_id",
+        "event_type",
+        "tenant_id",
+        "resource_type",
+        "resource_id",
+        "actor_id",
+        "action_timestamp",
+        "correlation_id"
+      ],
+      "properties": {
+        "audit_id": {
+          "type": "string",
+          "pattern": "^audit_[a-z0-9]+$",
+          "description": "Immutable, globally unique audit entry identifier."
+        },
+        "event_type": { "$ref": "#/$defs/auditEventType" },
+        "tenant_id": { "$ref": "./domain.schema.json#/$defs/tenantId" },
+        "legal_entity_id": { "$ref": "./domain.schema.json#/$defs/legalEntityId" },
+        "resource_type": {
+          "type": "string",
+          "enum": ["mapping", "market", "tenant", "estate", "context", "approval"],
+          "description": "Type of resource that was modified."
+        },
+        "resource_id": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Identifier of the resource that was modified (mapping_id, market_id, etc.)."
+        },
+        "actor_id": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Identity of the user or service that performed the action."
+        },
+        "actor_type": {
+          "type": "string",
+          "enum": ["user", "service_account", "system"],
+          "default": "user"
+        },
+        "action_timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the action occurred."
+        },
+        "request_id": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "HTTP request ID that caused this audit event."
+        },
+        "correlation_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Business correlation ID for tracing related events."
+        },
+        "causation_id": {
+          "type": ["string", "null"],
+          "format": "uuid",
+          "description": "UUID of the immediate command or event that caused this."
+        },
+        "previous_state": {
+          "type": ["object", "null"],
+          "description": "Complete previous state of the resource (for mutations)."
+        },
+        "new_state": {
+          "type": ["object", "null"],
+          "description": "Complete new state of the resource (for mutations)."
+        },
+        "changes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "from": {},
+              "to": {}
+            }
+          },
+          "maxProperties": 100,
+          "description": "Field-level changes (from → to). Large objects should not be logged here; use previous_state/new_state."
+        },
+        "reason": {
+          "type": ["string", "null"],
+          "maxLength": 500,
+          "description": "Explanation provided by the actor for the action."
+        },
+        "approval_id": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z0-9]+$",
+          "description": "Reference to approval workflow if this action required approval."
+        },
+        "origin": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Source of the request (IP, service name, etc.)."
+        },
+        "http_method": {
+          "type": "string",
+          "enum": ["POST", "GET", "PUT", "PATCH", "DELETE"]
+        },
+        "http_path": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "http_status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "success": {
+          "type": "boolean",
+          "description": "Whether the operation succeeded."
+        },
+        "error_code": {
+          "type": ["string", "null"],
+          "maxLength": 64
+        },
+        "error_message": {
+          "type": ["string", "null"],
+          "maxLength": 500
+        },
+        "metadata": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "maxProperties": 10,
+          "properties": {
+            "service": { "type": "string", "maxLength": 128 },
+            "service_version": { "type": "string", "maxLength": 64 },
+            "deployment_region": { "type": "string", "maxLength": 64 }
+          }
+        }
+      }
+    },
+    "approvalRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approval_id",
+        "approval_type",
+        "resource_type",
+        "resource_id",
+        "requester_id",
+        "status",
+        "created_at"
+      ],
+      "properties": {
+        "approval_id": {
+          "type": "string",
+          "pattern": "^appr_[a-z0-9]+$",
+          "description": "Unique approval workflow identifier."
+        },
+        "approval_type": {
+          "type": "string",
+          "enum": ["four_eyes", "legal_review", "security_review", "policy_review"],
+          "description": "Type of approval required."
+        },
+        "resource_type": {
+          "type": "string",
+          "enum": ["mapping", "market", "tenant"]
+        },
+        "resource_id": { "type": "string", "maxLength": 128 },
+        "tenant_id": { "$ref": "./domain.schema.json#/$defs/tenantId" },
+        "requester_id": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Identity of the actor requesting approval."
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Human-readable summary of what is being approved."
+        },
+        "rationale": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Business justification for the change."
+        },
+        "required_approvers": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 2,
+          "description": "Number of independent approvals required (usually 2 for four-eyes)."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "in_progress", "approved", "denied", "cancelled"],
+          "description": "Current approval workflow state."
+        },
+        "approvals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["approver_id", "decision", "approved_at"],
+            "properties": {
+              "approver_id": { "type": "string", "maxLength": 256 },
+              "decision": { "type": "string", "enum": ["approved", "denied"] },
+              "approved_at": { "type": "string", "format": "date-time" },
+              "comment": { "type": "string", "maxLength": 500 }
+            }
+          },
+          "maxItems": 10,
+          "description": "Approvals collected so far."
+        },
+        "denied_reason": {
+          "type": ["string", "null"],
+          "maxLength": 500,
+          "description": "Reason for denial if status is denied."
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Approval expires if not completed by this time."
+        },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "completed_at": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "auditQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": { "$ref": "./domain.schema.json#/$defs/tenantId" },
+        "resource_type": {
+          "type": "string",
+          "enum": ["mapping", "market", "tenant", "estate", "context", "approval"]
+        },
+        "resource_id": { "type": "string", "maxLength": 128 },
+        "actor_id": { "type": "string", "maxLength": 256 },
+        "event_type": { "$ref": "#/$defs/auditEventType" },
+        "from_timestamp": { "type": "string", "format": "date-time" },
+        "to_timestamp": { "type": "string", "format": "date-time" },
+        "success_only": { "type": "boolean" },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 100 }
+      },
+      "description": "Query filters for audit trail search."
+    },
+    "auditQueryResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entries", "total", "query_executed_at"],
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/auditLogEntry" }
+        },
+        "total": {
+          "type": "integer",
+          "description": "Total matching entries (may exceed limit)."
+        },
+        "next_token": {
+          "type": ["string", "null"],
+          "description": "Pagination token for fetching next page."
+        },
+        "query_executed_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}
