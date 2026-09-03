@@ -29,17 +29,23 @@
 # each required capability against versions.lock, filtered to that profile's
 # capability domain subset (see `profiles` below).
 #
-# Consuming repositories (five, per ADR-0001 section 2.8a)
+# Consuming repositories (six, per ADR-0001 section 2.8a)
 # -----------------------------------------------------------
 #   nabhold/baobab            -> profile: full
 #   nabhold/nabhold            \
 #   nabhold/zuribeans           |
 #   nabhold/thamani             |-> profile: frontend
 #   nabhold/equator-estate     /
+#   nabhold/infrastructure     -> profile: infra
+#
+# `nabhold/infrastructure` joined 2026-09-03 — it previously declared
+# `profile: "full"` for lack of anything better (see `profiles.infra` below
+# for why that was wrong for what it actually runs). Update ADR-0001 section
+# 2.8a to match if it still enumerates only five.
 #
 # Every declaration file, regardless of repo, MUST live at the same relative
 # path: `.nabhold/environment.yaml`. This is what allows one validator
-# implementation to serve all five repos.
+# implementation to serve all six repos.
 #
 # Versioning
 # ----------
@@ -135,6 +141,34 @@ profiles:
         of this profile needs that, treat it as a deliberate decision, not
         an accident of two tools each assuming they own browser provisioning.
 
+  infra:
+    description: >
+      Terraform + AWS CLI only — no application language runtimes at all
+      (no Python, Node, Flutter, or Java). Used for local development and
+      testing of Terraform-managed AWS infrastructure (currently:
+      nabhold/infrastructure only). Does NOT extend `full` or `frontend` —
+      it shares no language/package-manager domain with either; it is a
+      sibling branch off baobab-dev's shared base layer, not a subset or
+      superset of another profile.
+    image_tag_pattern: "ghcr.io/nabhold/baobab-dev:{version}-infra"
+    capability_domains:
+      - "platform"                  # shared base layer
+      - "utilities"                 # generic CLI tools, same subset as `full`/`frontend`
+      - "development.docker"        # Docker CLI + Compose + Buildx — NOT dockerd
+      - "development.github_cli"
+      - "development.terraform"
+      - "development.aws_cli"
+    source_domains_confirmed_present: true   # verified against baobab-dev's
+                                              # own versions.yaml/
+                                              # capabilities.yaml
+                                              # (v1.4.0-rc.0), 2026-09-03
+    notes:
+      - >
+        `kubectl`/Helm are deliberately NOT part of this profile —
+        nabhold/infrastructure's own README defers Kubernetes/Helm/Temporal
+        "until operational need justifies their additional machinery." Add
+        them here only if that decision changes, not preemptively.
+
 # ------------------------------------------------------------------------------
 # Required structure of a per-repository declaration
 # (`<repo>/.nabhold/environment.yaml`)
@@ -161,7 +195,8 @@ declaration_requirements:
         description: >
           For the four digital-estate repos, SHOULD reference the matching
           `entity_id` from the legal-entity registry. Not applicable to
-          `baobab` itself (a platform, not a tenant).
+          `baobab` itself (a platform, not a tenant) or to
+          `infrastructure` (org-wide provisioning, not a tenant either).
       version:
         required: true
         description: "Application/repo release version. NOT the environment version."
@@ -174,7 +209,16 @@ declaration_requirements:
         description: "MUST be 'baobab-dev'."
       profile:
         required: true
-        allowed_values: ["full", "frontend"]
+        # FIX (2026-09-03): this list was missing "frontend-e2e" — a
+        # pre-existing gap unrelated to the "infra" addition below.
+        # `frontend-e2e` has had its own `profiles.frontend-e2e` block
+        # since the v1.1.0 rollout but was apparently never added here,
+        # meaning a declaration setting `profile: "frontend-e2e"` would
+        # have been schema-invalid even though the profile itself was
+        # real and satisfiable. Caught while adding "infra" for the same
+        # field; fixed together rather than filed as a separate issue,
+        # since both are one-line additions to the same list.
+        allowed_values: ["full", "frontend", "frontend-e2e", "infra"]
       minimum_version:
         required: true
         description: "Minimum baobab-dev release the repo can be developed against."
@@ -244,6 +288,8 @@ ownership:
     owner: "nabhold/baobab"
   frontend_profile_declarations:
     owner: "nabhold/nabhold, nabhold/zuribeans, nabhold/thamani, nabhold/equator-estate"
+  infra_profile_declaration:
+    owner: "nabhold/infrastructure"
 
 # ------------------------------------------------------------------------------
 # Notes
@@ -273,3 +319,11 @@ notes:
     end-to-end test jobs specifically. Do not set a repo's primary
     declaration to `frontend-e2e` — that would put browser binaries in
     every developer's daily container for no reason.
+  - >
+    [2026-09-03] Added the `infra` profile and its `nabhold/infrastructure`
+    consumer. `infra` was verified satisfiable against baobab-dev's own
+    versions.yaml/capabilities.yaml (v1.4.0-rc.0) at the time this note was
+    written — confirm that release actually shipped before treating
+    `nabhold/infrastructure`'s own declaration as CI-validated, same
+    caution already applied to `frontend` above while it waited on
+    Turborepo/Playwright.
