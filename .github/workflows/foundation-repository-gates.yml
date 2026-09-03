@@ -1,3 +1,26 @@
+# ==============================================================================
+# NABHOLD GROUP AFRICA
+# Reusable — Foundation Repository Gates
+#
+# Target path: nabhold/shared/.github/workflows/foundation-repository-gates.yml
+#
+# Purpose
+# -------
+# workflow_call gate every repo's own .github/workflows/foundation.yml calls
+# (see nabhold/baobab-dev's for the calling convention). Validates a
+# repo's .nabhold/environment.yaml + .devcontainer/devcontainer.json against
+# the Development Environment Contract, checks reproducibility inputs
+# (lockfiles, SHA-pinned Actions, no floating base-image tags), and runs a
+# Trivy dependency/secret/container scan.
+#
+# 2026-09-03: repository-contract job's PROFILE_BASELINES map updated —
+# added "infra" (baobab-dev's new Terraform+AWS CLI profile) and fixed
+# "frontend-e2e" (previously missing from the profile whitelist entirely,
+# so frontend-e2e repos could never actually pass this job). See
+# nabhold/shared's contracts/development-environment/schema.yaml for the
+# profile definitions this file's PROFILE_BASELINES map mirrors.
+# ==============================================================================
+
 name: Reusable — Foundation Repository Gates
 
 on:
@@ -51,12 +74,33 @@ jobs:
           abort "unsupported environment contract version" unless declaration.dig("schema", "version").to_s == "1.0"
           abort "environment provider must be baobab-dev" unless declaration.dig("environment", "provider") == "baobab-dev"
 
-          profile = declaration.dig("environment", "profile")
-          abort "profile must be full or frontend" unless %w[full frontend].include?(profile)
-          minimum = declaration.dig("environment", "minimum_version").to_s
-          abort "Foundation 4 requires baobab-dev v1.2.6" unless minimum.start_with?("1.2.6")
+          # Per-profile floor: the minimum baobab-dev version each profile must declare, and
+          # the image tag baobab-dev publishes for it (mirrors nabhold/shared's own
+          # contracts/development-environment/schema.yaml `profiles.*.image_tag_pattern`,
+          # duplicated here because this job only checks out the *calling* repo, not
+          # nabhold/shared itself, so it cannot read that file at runtime).
+          #
+          # Bumping an EXISTING profile's `minimum` here raises the floor for every repo
+          # already on that profile and will break their CI until they bump their own
+          # environment.yaml in step — do that deliberately, in its own PR, coordinated
+          # with the repos on that profile, not as a drive-by edit alongside an unrelated
+          # change. Adding a brand-new profile entry (as with "infra" below) is always
+          # safe: by definition no existing repo declares it yet.
+          PROFILE_BASELINES = {
+            "full"         => { minimum: "1.2.6",      tag: ->(v) { "ghcr.io/nabhold/baobab-dev:#{v}" } },
+            "frontend"     => { minimum: "1.2.6",      tag: ->(v) { "ghcr.io/nabhold/baobab-dev:#{v}-frontend" } },
+            "frontend-e2e" => { minimum: "1.2.6",      tag: ->(v) { "ghcr.io/nabhold/baobab-dev:#{v}-frontend-e2e" } },
+            "infra"        => { minimum: "1.4.0-rc.0", tag: ->(v) { "ghcr.io/nabhold/baobab-dev:#{v}-infra" } },
+          }.freeze
 
-          expected = profile == "frontend" ? "ghcr.io/nabhold/baobab-dev:1.2.6-frontend" : "ghcr.io/nabhold/baobab-dev:1.2.6"
+          profile = declaration.dig("environment", "profile")
+          abort "profile must be one of: #{PROFILE_BASELINES.keys.join(', ')}" unless PROFILE_BASELINES.key?(profile)
+
+          baseline = PROFILE_BASELINES.fetch(profile)
+          minimum = declaration.dig("environment", "minimum_version").to_s
+          abort "profile '#{profile}' requires baobab-dev v#{baseline[:minimum]} (minimum_version must start with it)" unless minimum.start_with?(baseline[:minimum])
+
+          expected = baseline[:tag].call(minimum)
           devcontainer = Dir.glob(".devcontainer/**/*").select { |path| File.file?(path) }.map { |path| File.read(path) }.join("\n")
           abort "devcontainer must use #{expected}" unless devcontainer.include?(expected)
 
