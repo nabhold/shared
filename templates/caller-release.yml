@@ -1,3 +1,18 @@
+# Target path: nabhold/shared/templates/caller-release.yml
+#
+# FIX 2026-09-04: the pin below previously pointed at nabhold/shared's
+# v1.0.0 tag SHA (ad5cdb028023cd6b9c48cd8d7e6151ef4ab0cd73) — a real,
+# resolvable commit, which made the problem harder to spot than the
+# other three caller templates' obvious all-zeros placeholders. v1.0.0
+# predates release.yml entirely: confirmed via `git ls-tree v1.0.0 --
+# .github/workflows/release.yml` (empty) vs. `git ls-tree v1.1.0 --
+# .github/workflows/release.yml` (present) on 2026-09-03. Anyone who
+# copied this template as checked-in got a pin that looked valid but
+# didn't contain the referenced workflow. Re-pinned below to v1.1.0,
+# verified live via `git cat-file -e
+# f8df9b90ffe8fef5cbf6d14a9bcf868f723d1464:.github/workflows/release.yml`
+# on 2026-09-04.
+#
 # Copy into <repo>/.github/workflows/release.yml
 # Adjust the changelog-path input and the "files" TODO below for this
 # repository, then delete this comment block.
@@ -28,14 +43,14 @@ jobs:
   release:
     permissions:
       contents: write
-    # SHA is nabhold/shared's v1.0.0 tag (annotated — peeled commit, not
-    # the tag object's own SHA), verified live via
-    # `git ls-remote --tags https://github.com/nabhold/shared.git v1.0.0`
-    # on 2026-08-25. Re-verify and re-pin once a release containing this
-    # workflow is actually cut — v1.0.0 predates it, so this placeholder
-    # SHA must be updated to the commit that first introduces
-    # .github/workflows/release.yml before this caller will resolve.
-    uses: nabhold/shared/.github/workflows/release.yml@ad5cdb028023cd6b9c48cd8d7e6151ef4ab0cd73 # v1.0.0
+    # Pin is nabhold/shared's v1.1.0 tag (annotated — peeled commit, not
+    # the tag object's own SHA) — the earliest tag that actually contains
+    # release.yml. Re-verify before merging if this file is more than a
+    # few weeks old: `git ls-remote --tags
+    # https://github.com/nabhold/shared.git` and confirm whichever tag
+    # you pin to actually contains .github/workflows/release.yml, not
+    # just that the tag itself resolves.
+    uses: nabhold/shared/.github/workflows/release.yml@f8df9b90ffe8fef5cbf6d14a9bcf868f723d1464 # v1.1.0
     with:
       changelog-path: "CHANGELOG.md"
       # TODO: set to true only once this repo actually publishes something
