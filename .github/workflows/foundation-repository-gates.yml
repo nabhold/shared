@@ -19,6 +19,18 @@
 # so frontend-e2e repos could never actually pass this job). See
 # nabhold/shared's contracts/development-environment/schema.yaml for the
 # profile definitions this file's PROFILE_BASELINES map mirrors.
+#
+# 2026-09-05: repository-contract job's minimum_version check fixed —
+# it compared `minimum.start_with?(baseline[:minimum])`, a literal string
+# prefix test, not a version floor. Any repo legitimately declaring a
+# `minimum_version` newer than a baseline's exact string (e.g. "1.3.0"
+# against the "full" profile's "1.2.6" floor) failed this job outright,
+# even though nothing was actually incompatible — confirmed against
+# nabhold/baobab-pulse, whose Foundation Repository Gates run has failed
+# on every push since it legitimately moved to baobab-dev 1.3.0. Now a
+# real Gem::Version `>=` comparison, so any release at or above a
+# profile's floor passes, not only ones whose string happens to start
+# with the floor's exact text.
 # ==============================================================================
 
 name: Reusable — Foundation Repository Gates
@@ -63,6 +75,7 @@ jobs:
         shell: ruby {0}
         run: |
           require "yaml"
+          require "rubygems/version"
 
           declaration_path = ".nabhold/environment.yaml"
           devcontainer_path = ".devcontainer/devcontainer.json"
@@ -98,7 +111,8 @@ jobs:
 
           baseline = PROFILE_BASELINES.fetch(profile)
           minimum = declaration.dig("environment", "minimum_version").to_s
-          abort "profile '#{profile}' requires baobab-dev v#{baseline[:minimum]} (minimum_version must start with it)" unless minimum.start_with?(baseline[:minimum])
+          abort "profile '#{profile}' declares an unparseable minimum_version: #{minimum.inspect}" unless Gem::Version.correct?(minimum)
+          abort "profile '#{profile}' requires baobab-dev >= v#{baseline[:minimum]}, got v#{minimum}" unless Gem::Version.new(minimum) >= Gem::Version.new(baseline[:minimum])
 
           expected = baseline[:tag].call(minimum)
           devcontainer = Dir.glob(".devcontainer/**/*").select { |path| File.file?(path) }.map { |path| File.read(path) }.join("\n")
