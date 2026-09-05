@@ -4,7 +4,7 @@
   "remoteUser": "vscode",
   "updateRemoteUserUID": true,
   "updateContentCommand": "corepack enable && pnpm install --frozen-lockfile --ignore-scripts",
-  "postCreateCommand": "pnpm lint",
+  "postCreateCommand": "baobab-verify --contract && pnpm lint",
   "customizations": {
     "vscode": {
       "extensions": [
