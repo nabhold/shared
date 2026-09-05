@@ -31,6 +31,25 @@
 # real Gem::Version `>=` comparison, so any release at or above a
 # profile's floor passes, not only ones whose string happens to start
 # with the floor's exact text.
+#
+# 2026-09-05 (later same day): the Gem::Version `>=` fix above broke every
+# `frontend`-profile repo instead. nabhold/nabhold, nabhold/zuribeans,
+# nabhold/thamani, and nabhold/shared's own declaration (this repo) all
+# follow the documented convention (see engine-template's
+# environment.yaml.example: "use the SAME version in both minimum_version
+# here and the image tag") of writing `minimum_version` WITH the profile
+# suffix baked in, e.g. "1.2.6-frontend" — not the bare "1.2.6" the old
+# PROFILE_BASELINES design assumed. Gem::Version treats the "-frontend"
+# text as a prerelease marker, so "1.2.6-frontend" sorts BELOW "1.2.6" and
+# the floor check failed for all four, identically, confirmed by
+# reproducing this job's exact failure against nabhold/shared's own
+# checkout. Fixed by normalizing `minimum_version` to its bare numeric
+# core (stripping the profile's own suffix if present) before the floor
+# comparison, and building `expected` from that bare core plus the
+# suffix — which now works whether a repo's declared `minimum_version`
+# already carries the suffix (frontend/frontend-e2e's real convention) or
+# doesn't (full/infra's real convention, e.g. nabhold/infrastructure's
+# bare "1.4.0-rc.0").
 # ==============================================================================
 
 name: Reusable — Foundation Repository Gates
@@ -88,10 +107,16 @@ jobs:
           abort "environment provider must be baobab-dev" unless declaration.dig("environment", "provider") == "baobab-dev"
 
           # Per-profile floor: the minimum baobab-dev version each profile must declare, and
-          # the image tag baobab-dev publishes for it (mirrors nabhold/shared's own
+          # the image tag suffix baobab-dev publishes for it (mirrors nabhold/shared's own
           # contracts/development-environment/schema.yaml `profiles.*.image_tag_pattern`,
           # duplicated here because this job only checks out the *calling* repo, not
           # nabhold/shared itself, so it cannot read that file at runtime).
+          #
+          # A repo's declared `minimum_version` may or may not already carry the profile's
+          # own suffix (e.g. "1.2.6-frontend" vs. bare "1.2.6") — both conventions are in
+          # live use across the org, so `minimum_version` is normalized to its bare numeric
+          # core below before any comparison or tag construction, regardless of which form
+          # a given repo wrote.
           #
           # Bumping an EXISTING profile's `minimum` here raises the floor for every repo
           # already on that profile and will break their CI until they bump their own
@@ -100,21 +125,22 @@ jobs:
           # change. Adding a brand-new profile entry (as with "infra" below) is always
           # safe: by definition no existing repo declares it yet.
           PROFILE_BASELINES = {
-            "full"         => { minimum: "1.2.6",      tag: ->(v) { "ghcr.io/nabhold/baobab-dev:#{v}" } },
-            "frontend"     => { minimum: "1.2.6",      tag: ->(v) { "ghcr.io/nabhold/baobab-dev:#{v}-frontend" } },
-            "frontend-e2e" => { minimum: "1.2.6",      tag: ->(v) { "ghcr.io/nabhold/baobab-dev:#{v}-frontend-e2e" } },
-            "infra"        => { minimum: "1.4.0-rc.0", tag: ->(v) { "ghcr.io/nabhold/baobab-dev:#{v}-infra" } },
+            "full"         => { minimum: "1.2.6",      suffix: "" },
+            "frontend"     => { minimum: "1.2.6",      suffix: "-frontend" },
+            "frontend-e2e" => { minimum: "1.2.6",      suffix: "-frontend-e2e" },
+            "infra"        => { minimum: "1.4.0-rc.0", suffix: "-infra" },
           }.freeze
 
           profile = declaration.dig("environment", "profile")
           abort "profile must be one of: #{PROFILE_BASELINES.keys.join(', ')}" unless PROFILE_BASELINES.key?(profile)
 
           baseline = PROFILE_BASELINES.fetch(profile)
-          minimum = declaration.dig("environment", "minimum_version").to_s
-          abort "profile '#{profile}' declares an unparseable minimum_version: #{minimum.inspect}" unless Gem::Version.correct?(minimum)
-          abort "profile '#{profile}' requires baobab-dev >= v#{baseline[:minimum]}, got v#{minimum}" unless Gem::Version.new(minimum) >= Gem::Version.new(baseline[:minimum])
+          declared = declaration.dig("environment", "minimum_version").to_s
+          bare = baseline[:suffix].empty? ? declared : declared.delete_suffix(baseline[:suffix])
+          abort "profile '#{profile}' declares an unparseable minimum_version: #{declared.inspect}" unless Gem::Version.correct?(bare)
+          abort "profile '#{profile}' requires baobab-dev >= v#{baseline[:minimum]}, got v#{declared}" unless Gem::Version.new(bare) >= Gem::Version.new(baseline[:minimum])
 
-          expected = baseline[:tag].call(minimum)
+          expected = "ghcr.io/nabhold/baobab-dev:#{bare}#{baseline[:suffix]}"
           devcontainer = Dir.glob(".devcontainer/**/*").select { |path| File.file?(path) }.map { |path| File.read(path) }.join("\n")
           abort "devcontainer must use #{expected}" unless devcontainer.include?(expected)
 
