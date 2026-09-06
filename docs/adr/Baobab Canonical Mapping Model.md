@@ -932,7 +932,7 @@ A DigitalEstate is an experience boundary, not necessarily a tenant boundary or 
 Examples:
 
 ```text
-Thamani B2B Estate
+Thamani B2C Estate
 ZuriBeans Estate
 Nabhold Corporate Estate
 future mobile commerce estate
@@ -2697,12 +2697,12 @@ CanonicalEntity
 Market mappings can then overlay:
 
 ```text
-South Africa B2B
+South Africa B2C
     Medusa Region ZA
     ZAR
     iDempiere Org ZA
 
-Kenya B2B
+Kenya B2C
     Medusa Region KE
     KES
     iDempiere Org KE
@@ -2716,7 +2716,7 @@ There remains one canonical product identity.
 
 ```text
 DigitalEstate:
-    Thamani B2B
+    Thamani B2C
 
 DigitalProperties:
     thamani.example
@@ -2724,8 +2724,8 @@ DigitalProperties:
     mobile://thamani
 
 Markets:
-    ZA-B2B
-    KE-B2B
+    ZA-B2C
+    KE-B2C
 
 Capabilities:
     content.pages
@@ -2754,7 +2754,7 @@ Canonical Legal Entity:
     Thamani Global
 
 Canonical Market:
-    Kenya B2B
+    Kenya B2C
 ```
 
 may map to iDempiere:
