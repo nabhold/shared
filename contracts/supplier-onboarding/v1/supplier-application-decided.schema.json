@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/supplier-onboarding/v1/supplier-application-decided.schema.json",
+  "title": "Supplier application decided",
+  "description": "Emitted when a reviewer resolves a supplier application: approved, rejected, or sent back for more information or a sample. Decision detail visible to the applicant only; internal reviewer notes are never carried on this contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["estate_id", "legal_entity_id", "application_id", "decision", "decided_at", "revision"],
+  "properties": {
+    "estate_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/resourceId" },
+    "legal_entity_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/legalEntityId" },
+    "application_id": { "$ref": "./domain.schema.json#/$defs/estateResourceId" },
+    "canonical_organisation_id": { "$ref": "./domain.schema.json#/$defs/canonicalOrganisationId" },
+    "decision": {
+      "type": "string",
+      "enum": ["approved", "rejected", "more_information_required", "sample_required"]
+    },
+    "reason_code": { "$ref": "./domain.schema.json#/$defs/rejectionReasonCode" },
+    "applicant_visible_explanation": {
+      "type": ["string", "null"],
+      "maxLength": 1000,
+      "description": "Supplier-facing explanation only. Never internal risk notes, scores, or reviewer identity."
+    },
+    "remediation_allowed": { "type": "boolean" },
+    "decided_at": { "$ref": "./domain.schema.json#/$defs/timestamp" },
+    "revision": { "$ref": "./domain.schema.json#/$defs/version" }
+  }
+}

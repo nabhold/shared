@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/supplier-onboarding/v1/supplier-capability-verified.schema.json",
+  "title": "Supplier capability verified",
+  "description": "Emitted when a reviewer moves a declared supplier capability (what a supplier says it can supply) to verified or rejected. A capability is scoped to one product category; verifying it does not approve any specific product proposal.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["estate_id", "legal_entity_id", "application_id", "capability_id", "product_category", "verification_status", "verified_at", "revision"],
+  "properties": {
+    "estate_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/resourceId" },
+    "legal_entity_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/legalEntityId" },
+    "application_id": { "$ref": "./domain.schema.json#/$defs/estateResourceId" },
+    "canonical_organisation_id": { "$ref": "./domain.schema.json#/$defs/canonicalOrganisationId" },
+    "capability_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "product_category": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", "maxLength": 63 },
+    "verification_status": { "type": "string", "enum": ["verified", "rejected"] },
+    "verified_by": { "type": ["string", "null"], "maxLength": 255 },
+    "verified_at": { "$ref": "./domain.schema.json#/$defs/timestamp" },
+    "revision": { "$ref": "./domain.schema.json#/$defs/version" }
+  }
+}
