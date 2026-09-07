@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/supplier-onboarding/v1/supplier-qualification-updated.schema.json",
+  "title": "Supplier qualification updated",
+  "description": "Emitted on every lifecycle status change of a supplier application or active supplier record, mirroring the estate-owned supplier_status_events audit trail this contract generalizes from (nabhold/zuribeans ADR-0006).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["estate_id", "legal_entity_id", "application_id", "to_status", "actor", "occurred_at", "revision"],
+  "properties": {
+    "estate_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/resourceId" },
+    "legal_entity_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/legalEntityId" },
+    "application_id": { "$ref": "./domain.schema.json#/$defs/estateResourceId" },
+    "canonical_organisation_id": { "$ref": "./domain.schema.json#/$defs/canonicalOrganisationId" },
+    "from_status": {
+      "anyOf": [{ "$ref": "./domain.schema.json#/$defs/applicationStatus" }, { "type": "null" }]
+    },
+    "to_status": { "$ref": "./domain.schema.json#/$defs/applicationStatus" },
+    "actor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Origin-carrying actor reference, e.g. \"user:usr_123\" or \"system\"; never a bare name with no origin."
+    },
+    "reason": { "type": ["string", "null"], "maxLength": 1000 },
+    "occurred_at": { "$ref": "./domain.schema.json#/$defs/timestamp" },
+    "revision": { "$ref": "./domain.schema.json#/$defs/version" }
+  }
+}

@@ -1,0 +1,48 @@
+schema:
+  name: baobab-supplier-onboarding-system-of-record
+  version: "1.0"
+  rule: >
+    No record is implicitly bidirectional; the declared process owner wins
+    its attributes and corrections are explicit. This file is scoped to the
+    supplier-onboarding domain only. It does not amend, and must never be
+    read as amending, contracts/erp/v1/system-of-record.yaml — in
+    particular that file's "Organisation" concept remains canonical_owner
+    unassigned (CI-enforced there) and its "Supplier" concept remains
+    canonical_owner erp. Both are referenced below, never redefined.
+
+concepts:
+  - concept: Supplier Application
+    canonical_owner: hosting-estate
+    producer: [digital-estates]
+    consumers: [erp, reporting]
+    external_identifier: estate-minted application ID (see domain.schema.json#/$defs/estateResourceId); canonical_organisation_id is reserved and null until contracts/erp/v1/system-of-record.yaml's Organisation concept is assigned an owner
+    idempiere_representation: none until ERP provisioning exists; on approval an application becomes an input to a future Business Partner vendor-role record (see contracts/erp/v1/system-of-record.yaml's Supplier concept), never the same record
+    medusa_representation: none
+    synchronisation_direction: estate_to_authorised_consumers
+    consistency: estate authoritative pre-approval; superseded by ERP's Supplier record once provisioning exists
+    mechanism: estate-owned database and this contract's versioned events
+    conflict_resolution: equality with the platform Organisation concept or the ERP Supplier concept is forbidden until an explicit mapping is approved; ambiguous mappings are quarantined, matching contracts/erp/v1/system-of-record.yaml's Organisation entry
+
+  - concept: Supplier Capability
+    canonical_owner: hosting-estate
+    producer: [digital-estates]
+    consumers: [erp, reporting]
+    external_identifier: estate-local capability ID scoped to one Supplier Application
+    idempiere_representation: none until ERP provisioning exists
+    medusa_representation: none
+    synchronisation_direction: estate_to_authorised_consumers
+    consistency: estate authoritative; declared != verified
+    mechanism: estate-owned database and this contract's versioned events
+    conflict_resolution: a capability never implies approval of any specific product proposal; product-level approval is a distinct, not-yet-defined contract
+
+  - concept: Supplier Certification
+    canonical_owner: hosting-estate
+    producer: [digital-estates]
+    consumers: [erp, reporting]
+    external_identifier: estate-local certification ID scoped to one Supplier Application
+    idempiere_representation: none until ERP provisioning exists
+    medusa_representation: none
+    synchronisation_direction: estate_to_authorised_consumers
+    consistency: estate authoritative; declared != verified
+    mechanism: estate-owned database and this contract's versioned events
+    conflict_resolution: certification metadata only; document custody is a storage decision each estate makes for itself, not covered by this contract

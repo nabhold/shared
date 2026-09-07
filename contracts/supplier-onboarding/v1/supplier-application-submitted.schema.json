@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nabhold.com/supplier-onboarding/v1/supplier-application-submitted.schema.json",
+  "title": "Supplier application submitted",
+  "description": "Emitted by a digital estate when a prospective supplier submits an application for review. Estate-owned and pre-approval; not the ERP-owned Supplier concept in contracts/erp/v1/system-of-record.yaml.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["estate_id", "legal_entity_id", "application_id", "legal_name", "country_code", "product_categories", "submitted_at", "revision"],
+  "properties": {
+    "estate_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/resourceId" },
+    "legal_entity_id": { "$ref": "../../control-plane/v1/domain.schema.json#/$defs/legalEntityId" },
+    "application_id": { "$ref": "./domain.schema.json#/$defs/estateResourceId" },
+    "canonical_organisation_id": { "$ref": "./domain.schema.json#/$defs/canonicalOrganisationId" },
+    "legal_name": { "type": "string", "minLength": 1, "maxLength": 255 },
+    "country_code": { "$ref": "./domain.schema.json#/$defs/country" },
+    "product_categories": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", "maxLength": 63 },
+      "description": "Keys into the hosting estate's own category registry; this contract does not fix a category list."
+    },
+    "submitted_at": { "$ref": "./domain.schema.json#/$defs/timestamp" },
+    "revision": { "$ref": "./domain.schema.json#/$defs/version" }
+  }
+}

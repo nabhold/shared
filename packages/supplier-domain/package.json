@@ -1,0 +1,26 @@
+{
+  "name": "@nabhold/supplier-domain",
+  "version": "0.1.0",
+  "description": "Reusable supplier-onboarding domain mechanism (lifecycle state machine, capability/certification/status-event shapes) generalized from nabhold/zuribeans ADR-0006. Defines shapes and transition rules only — no persistence, no identity, no canonical Organisation minting.",
+  "private": false,
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm && tsc --emitDeclarationOnly",
+    "lint": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "tsup": "8.5.1",
+    "typescript": "7.0.2",
+    "vitest": "3.2.4"
+  }
+}
