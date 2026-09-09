@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.nabhold.com/contracts/identity/v1/human-identity.schema.json",
+  "title": "HumanIdentity",
+  "description": "Additional attributes for a human principal.",
+  "type": "object",
+  "allOf": [
+    { "$ref": "principal.schema.json" }
+  ],
+  "properties": {
+    "display_name": {
+      "type": "string",
+      "description": "Human‑readable name for display purposes."
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Primary authentication email. This is mutable and not a canonical identifier."
+    },
+    "verified": {
+      "type": "boolean",
+      "description": "Whether the email or primary contact has been verified."
+    }
+  },
+  "required": ["display_name", "email", "verified"]
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.nabhold.com/contracts/authorization/v1/context.schema.json",
+  "title": "AuthorizationContext",
+  "description": "Resolved platform context after Control Plane authorization.",
+  "type": "object",
+  "properties": {
+    "decision_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "principal_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "actor_type": {
+      "$ref": "../../identity/v1/actor-type.schema.json"
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "Resolved tenant identifier."
+    },
+    "legal_entity_id": {
+      "type": "string",
+      "description": "Resolved legal entity identifier, if applicable."
+    },
+    "digital_estate_id": {
+      "type": "string",
+      "description": "Resolved Digital Estate identifier."
+    },
+    "market_id": {
+      "type": "string",
+      "description": "Resolved market identifier (e.g., ZA, UG)."
+    },
+    "capability_id": {
+      "type": "string",
+      "description": "Resolved platform capability (e.g., baobab-trade)."
+    },
+    "engine_instance_id": {
+      "type": "string",
+      "description": "Resolved engine instance to route the request."
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["decision_id", "principal_id", "actor_type", "resolved_at"]
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.nabhold.com/contracts/identity/v1/external-identity.schema.json",
+  "title": "ExternalIdentity",
+  "description": "An identity asserted by an external identity provider, mapped to a canonical principal.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "principal_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Reference to the canonical principal."
+    },
+    "issuer": {
+      "type": "string",
+      "format": "uri",
+      "description": "The issuer URL of the external identity provider."
+    },
+    "subject": {
+      "type": "string",
+      "description": "The provider‑local subject identifier."
+    },
+    "provider_type": {
+      "type": "string",
+      "description": "e.g., keycloak, google, azure."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ACTIVE", "UNLINKED", "DISABLED", "REVOKED"]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_seen_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["id", "principal_id", "issuer", "subject", "status", "created_at"],
+  "additionalProperties": false
+}

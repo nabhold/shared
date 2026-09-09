@@ -1,0 +1,26 @@
+# contracts.lock.yaml
+version: 1
+contracts:
+  - domain: identity
+    version: v1
+    schemas:
+      - principal.schema.json
+      - actor-type.schema.json
+      - human-identity.schema.json
+      - workload-identity.schema.json
+      - external-identity.schema.json
+      - membership.schema.json
+      - external-reference.schema.json
+      - session.schema.json
+  - domain: authorization
+    version: v1
+    schemas:
+      - context.schema.json
+      - decision.schema.json
+      - scope-registry.yaml
+  - domain: identity-events
+    version: v1
+    schemas:
+      - identity-created.schema.json
+      - identity-disabled.schema.json
+      - membership-revoked.schema.json

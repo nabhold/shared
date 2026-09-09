@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.nabhold.com/contracts/identity/v1/session.schema.json",
+  "title": "Session",
+  "description": "An authentication session, owned by IAM, with bounded lifetime.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "principal_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "client_id": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_refresh": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "authentication_methods": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["password", "passkey", "webauthn", "totp", "federated"]
+      }
+    },
+    "assurance_level": {
+      "type": "string",
+      "enum": ["standard", "enhanced", "privileged", "critical"]
+    }
+  },
+  "required": ["id", "principal_id", "client_id", "started_at", "expires_at"]
+}

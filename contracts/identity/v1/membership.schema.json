@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.nabhold.com/contracts/identity/v1/membership.schema.json",
+  "title": "Membership",
+  "description": "A relationship between a principal and a platform resource (tenant, organisation, legal entity, etc.).",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "principal_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "resource_type": {
+      "type": "string",
+      "enum": ["tenant", "legal_entity", "digital_estate", "organisation", "capability"]
+    },
+    "resource_id": {
+      "type": "string",
+      "description": "Identifier of the resource (opaque, resource‑type‑specific)."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ACTIVE", "SUSPENDED", "REVOKED", "EXPIRED"]
+    },
+    "role": {
+      "type": "string",
+      "description": "Optional role within the resource (e.g., admin, viewer, approver)."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["id", "principal_id", "resource_type", "resource_id", "status", "created_at", "updated_at"]
+}

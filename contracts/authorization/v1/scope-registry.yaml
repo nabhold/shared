@@ -1,0 +1,41 @@
+# scope-registry.yaml
+# Canonical list of OAuth scopes used across Baobab services.
+
+scopes:
+  - name: "openid"
+    description: "Standard OIDC scope for identity claims."
+    required: true
+
+  - name: "profile"
+    description: "Access to basic profile information."
+    required: false
+
+  - name: "email"
+    description: "Access to email address."
+    required: false
+
+  - name: "context:resolve"
+    description: "Allows calling the Control Plane context resolution API."
+    audience: ["baobab-control-plane"]
+    allowed_actors: ["workload", "human"]
+
+  - name: "identity:self"
+    description: "Allows reading the authenticated principal's own identity data."
+    audience: ["baobab-cp", "baobab-iam"]
+    allowed_actors: ["human", "workload"]
+
+  - name: "identity:read"
+    description: "Allows reading identity data of other principals (privileged)."
+    audience: ["baobab-cp"]
+    allowed_actors: ["human"]
+    privileged: true
+
+  - name: "tenant:read"
+    description: "Read tenant metadata."
+    audience: ["baobab-cp"]
+    allowed_actors: ["workload", "human"]
+
+  - name: "events:publish"
+    description: "Allows publishing canonical events."
+    audience: ["event-broker"]
+    allowed_actors: ["workload"]

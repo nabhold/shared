@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.nabhold.com/contracts/identity/v1/external-reference.schema.json",
+  "title": "ExternalReference",
+  "description": "A mapping from a canonical principal to an identity in an external engine (e.g., Medusa customer, ERP AD_User).",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "principal_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "engine": {
+      "type": "string",
+      "enum": ["baobab-trade", "baobab-erp", "baobab-cms", "baobab-pulse"]
+    },
+    "engine_instance_id": {
+      "type": "string",
+      "description": "Which instance of the engine this mapping belongs to."
+    },
+    "external_type": {
+      "type": "string",
+      "description": "e.g., customer, ad_user, user"
+    },
+    "external_id": {
+      "type": "string",
+      "description": "The engine‑local identifier."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ACTIVE", "INACTIVE", "HISTORICAL"]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["id", "principal_id", "engine", "external_type", "external_id", "status", "created_at"]
+}

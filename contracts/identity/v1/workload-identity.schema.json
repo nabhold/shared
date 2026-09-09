@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.nabhold.com/contracts/identity/v1/workload-identity.schema.json",
+  "title": "WorkloadIdentity",
+  "description": "Identity for a machine‑to‑machine actor (service, job, or automation).",
+  "type": "object",
+  "allOf": [
+    { "$ref": "principal.schema.json" }
+  ],
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "The OAuth client identifier associated with this workload."
+    },
+    "owner": {
+      "type": "string",
+      "description": "Repository or team responsible for this workload."
+    },
+    "environment": {
+      "type": "string",
+      "enum": ["development", "staging", "production"],
+      "description": "Environment in which the workload runs."
+    }
+  },
+  "required": ["client_id", "owner", "environment"]
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.nabhold.com/contracts/identity-events/v1/identity-created.schema.json",
+  "title": "IdentityCreatedEvent",
+  "description": "Emitted when a new canonical identity is created.",
+  "type": "object",
+  "allOf": [
+    { "$ref": "../../common/event-envelope.schema.json" }
+  ],
+  "properties": {
+    "payload": {
+      "type": "object",
+      "properties": {
+        "principal_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "actor_type": {
+          "$ref": "../../identity/v1/actor-type.schema.json"
+        },
+        "external_issuer": {
+          "type": "string",
+          "description": "The issuer that triggered creation (if any)."
+        },
+        "external_subject": {
+          "type": "string",
+          "description": "The subject that triggered creation."
+        }
+      },
+      "required": ["principal_id", "actor_type"]
+    }
+  }
+}
