@@ -1,0 +1,77 @@
+# reason-code-registry.yaml
+# Canonical registry of machine-readable reason codes used across Baobab
+# services. A code here is opaque-safe by construction: none of these
+# descriptions reveal implementation detail, and adding a new code SHOULD
+# preserve that property (ADR-0008 §45 "Denial Model" -- "reason codes
+# SHALL not expose sensitive information indiscriminately to external
+# clients").
+#
+# Two categories exist for two different moments, not two different
+# vocabularies for the same thing:
+#
+#   authorization_denial  -- decision.schema.json's `reason_code`, returned
+#                             synchronously on a DENY authorization decision
+#                             (ADR-0008 §45's own example list).
+#   lifecycle_revocation   -- the `reason` field on identity-lifecycle event
+#                             payloads (contracts/identity-events/v1/
+#                             *.schema.json), published asynchronously when
+#                             a principal/membership is revoked or disabled
+#                             (ADR-0016 §141 "Reason Codes").
+#
+# TENANT_SUSPENDED (authorization_denial) and TENANT_SUSPENSION
+# (lifecycle_revocation) are deliberately two distinct, near-identical-
+# looking codes, not a typo: each is the literal wording its own governing
+# ADR uses, for its own category. Do not merge them.
+
+reason_codes:
+  # -- authorization_denial (ADR-0008 §45) ------------------------------
+  - code: IDENTITY_DISABLED
+    category: authorization_denial
+    description: "The principal's canonical identity is disabled."
+  - code: TENANT_SUSPENDED
+    category: authorization_denial
+    description: "The resolved tenant is suspended."
+  - code: MEMBERSHIP_MISSING
+    category: authorization_denial
+    description: "The principal has no active membership granting this access."
+  - code: MARKET_DISABLED
+    category: authorization_denial
+    description: "The resolved market is disabled for this tenant or product."
+  - code: CAPABILITY_NOT_BOUND
+    category: authorization_denial
+    description: "No active CapabilityBinding routes this request to an engine instance."
+  - code: ESTATE_DISABLED
+    category: authorization_denial
+    description: "The resolved Digital Estate is disabled."
+  - code: ENGINE_INSTANCE_UNAVAILABLE
+    category: authorization_denial
+    description: "No eligible engine instance is currently available to serve this request."
+  - code: POLICY_DENIED
+    category: authorization_denial
+    description: "A policy check denied the request for a reason not covered by a more specific code in this category."
+
+  # -- lifecycle_revocation (ADR-0016 §141) -----------------------------
+  - code: WORKFORCE_TERMINATION
+    category: lifecycle_revocation
+    description: "Revoked because the workforce member's employment or engagement ended."
+  - code: MEMBERSHIP_EXPIRED
+    category: lifecycle_revocation
+    description: "Revoked because the membership's effective period ended."
+  - code: SECURITY_COMPROMISE
+    category: lifecycle_revocation
+    description: "Revoked in response to a suspected or confirmed credential or identity compromise."
+  - code: ROLE_CHANGE
+    category: lifecycle_revocation
+    description: "Revoked because the principal's role or entitlement changed."
+  - code: TENANT_SUSPENSION
+    category: lifecycle_revocation
+    description: "Revoked because the owning tenant was suspended."
+  - code: CONTRACT_END
+    category: lifecycle_revocation
+    description: "Revoked because a commercial contract or engagement ended."
+  - code: USER_REQUEST
+    category: lifecycle_revocation
+    description: "Revoked at the subject's own request."
+  - code: ADMINISTRATIVE_ACTION
+    category: lifecycle_revocation
+    description: "Revoked by an administrator for a reason not covered by a more specific code in this category."

@@ -43,6 +43,10 @@
     "resolved_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "delegation": {
+      "$ref": "delegation.schema.json",
+      "description": "Present only when this request is a delegated call (ADR-0008 §90-92). principal_id above remains the immediate, authenticated caller; delegation.subject_id is who the call is ultimately for. Absent for a service acting on its own behalf."
     }
   },
   "required": ["decision_id", "principal_id", "actor_type", "resolved_at"]

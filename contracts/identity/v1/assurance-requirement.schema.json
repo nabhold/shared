@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.nabhold.com/contracts/identity/v1/assurance-requirement.schema.json",
+  "title": "AssuranceRequirement",
+  "description": "The minimum authentication assurance a risk-sensitive operation demands before it may proceed (ADR-0015 §37-39 'Step-Up Authentication', §181). A caller's AuthenticationAssurance (authentication-assurance.schema.json) satisfies this requirement when its acr is at least minimum_acr, at least one of its amr entries is in accepted_methods, and -- when set -- its authenticated_at/step_up_at is no older than max_authentication_age_seconds.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "minimum_acr": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The lowest OIDC acr value this operation will accept."
+    },
+    "accepted_methods": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "OIDC amr values this operation will accept."
+    },
+    "max_authentication_age_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Maximum age of the qualifying authentication (authenticated_at, or step_up_at when set) this operation will accept, in seconds. Absent means no freshness bound beyond acr/amr."
+    },
+    "phishing_resistant_required": {
+      "type": "boolean",
+      "description": "Whether at least one accepted method must be phishing-resistant (e.g. WebAuthn/passkey), independent of which specific amr values are listed."
+    }
+  },
+  "required": ["minimum_acr", "accepted_methods"]
+}
