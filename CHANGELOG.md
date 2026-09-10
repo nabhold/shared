@@ -48,8 +48,10 @@ Changes that have been merged but have not yet been included in a released versi
 - `entitlement.revoked`, `credential.compromised`, and `session.revoked`
   events (`contracts/identity-events/v1/entitlement-revoked.schema.json`,
   `credential-compromised.schema.json`, `session-revoked.schema.json`), 3
-  more of the 6 lifecycle events ADR-0016 §90 anticipated. Only
-  `workload.revoked` remains outstanding.
+  more of the 6 lifecycle events ADR-0016 §90 anticipated.
+- `workload.revoked` event (`contracts/identity-events/v1/workload-revoked.schema.json`),
+  the last of the 6 lifecycle events ADR-0016 §90 anticipated -- all 9
+  identity-events events it and ADR-0016 §139 call for now exist.
 
 ## Changed
 
