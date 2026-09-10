@@ -39,3 +39,42 @@ scopes:
     description: "Allows publishing canonical events."
     audience: ["event-broker"]
     allowed_actors: ["workload"]
+
+  - name: "mapping:read"
+    description: "Read a canonical mapping by ID."
+    audience: ["baobab-control-plane"]
+    allowed_actors: ["workload"]
+
+  - name: "mapping:write"
+    description: "Create, update, or retire a canonical mapping (privileged)."
+    audience: ["baobab-control-plane"]
+    allowed_actors: ["human"]
+    privileged: true
+
+  - name: "mapping:approve"
+    description: "Transition a mapping from VALIDATED to ACTIVE (privileged)."
+    audience: ["baobab-control-plane"]
+    allowed_actors: ["human"]
+    privileged: true
+
+  - name: "mapping:resolve"
+    description: "Resolve a canonical entity to its external representation(s)."
+    audience: ["baobab-control-plane"]
+    allowed_actors: ["workload"]
+
+  - name: "market:read"
+    description: "Read market configuration."
+    audience: ["baobab-control-plane"]
+    allowed_actors: ["workload"]
+
+  - name: "market:write"
+    description: "Create or update market configuration (privileged)."
+    audience: ["baobab-control-plane"]
+    allowed_actors: ["human"]
+    privileged: true
+
+  - name: "market:approve"
+    description: "Transition a market from VALIDATED to ACTIVE (privileged)."
+    audience: ["baobab-control-plane"]
+    allowed_actors: ["human"]
+    privileged: true
