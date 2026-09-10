@@ -41,6 +41,10 @@ Changes that have been merged but have not yet been included in a released versi
   invoice and payment-accounting outcomes.
 - A machine-readable ERP system-of-record matrix, international value schemas,
   compatibility fixtures, validation gate and ADR-0005.
+- `identity.suspended` and `identity.reactivated` events
+  (`contracts/identity-events/v1/identity-suspended.schema.json`,
+  `identity-reactivated.schema.json`), 2 of the 6 lifecycle events ADR-0016
+  §90 anticipated but `nabhold/shared` had not yet defined.
 
 ## Changed
 
@@ -54,6 +58,11 @@ Changes that have been merged but have not yet been included in a released versi
   without treating legal entity and tenant as synonyms.
 - Access-token claims now require an explicit actor type and may identify an
   authorised party through `azp`.
+- `identity.disabled` (`contracts/identity-events/v1/identity-disabled.schema.json`)
+  no longer accepts `new_status: SUSPENDED`; that transition is now the
+  separate `identity.suspended` event, so a single transition can no longer
+  be reported under two different event types. **Breaking**, though nothing
+  in this repository consumed that value yet.
 
 ## Deprecated
 
