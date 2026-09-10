@@ -12,11 +12,11 @@ info:
     producers and future consumers have a stable shape to build against
     once one does.
 
-    This package currently covers 3 of the events ADR-0016 ("Identity
+    This package currently covers 5 of the events ADR-0016 ("Identity
     Lifecycle, Revocation and Deprovisioning") anticipates —
-    identity.created, identity.disabled, membership.revoked. The
-    remaining suggested events (identity.suspended, identity.reactivated,
-    entitlement.revoked, credential.compromised, session.revoked,
+    identity.created, identity.disabled, identity.suspended,
+    identity.reactivated, membership.revoked. The remaining suggested
+    events (entitlement.revoked, credential.compromised, session.revoked,
     workload.revoked) are intentionally not defined here yet: each needs
     its own payload-shape design against that ADR's revocation-propagation
     and reason-code requirements, not a placeholder. See README.md.
@@ -27,6 +27,8 @@ channels:
     messages:
       identityCreated: { $ref: "#/components/messages/IdentityCreated" }
       identityDisabled: { $ref: "#/components/messages/IdentityDisabled" }
+      identitySuspended: { $ref: "#/components/messages/IdentitySuspended" }
+      identityReactivated: { $ref: "#/components/messages/IdentityReactivated" }
       membershipRevoked: { $ref: "#/components/messages/MembershipRevoked" }
 operations:
   publishIdentityEvents:
@@ -50,6 +52,22 @@ components:
           - type: object
             properties:
               data: { $ref: ./identity-disabled.schema.json }
+    IdentitySuspended:
+      name: com.nabhold.identity.suspended.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./identity-suspended.schema.json }
+    IdentityReactivated:
+      name: com.nabhold.identity.reactivated.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./identity-reactivated.schema.json }
     MembershipRevoked:
       name: com.nabhold.membership.revoked.v1
       payload:

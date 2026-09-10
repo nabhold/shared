@@ -27,4 +27,6 @@ contracts:
     schemas:
       - identity-created.schema.json
       - identity-disabled.schema.json
+      - identity-suspended.schema.json
+      - identity-reactivated.schema.json
       - membership-revoked.schema.json
