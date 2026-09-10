@@ -2,37 +2,30 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://schemas.nabhold.com/contracts/identity-events/v1/identity-disabled.schema.json",
   "title": "IdentityDisabledEvent",
-  "description": "Emitted when a canonical identity is disabled or suspended.",
+  "description": "Emitted when a canonical identity is disabled or suspended. This is the event envelope's `data` payload — see asyncapi.yaml for how it composes with contracts/events/v1/envelope.schema.json.",
   "type": "object",
-  "allOf": [
-    { "$ref": "../../common/event-envelope.schema.json" }
-  ],
+  "additionalProperties": false,
+  "required": ["principal_id", "previous_status", "new_status", "reason", "actor"],
   "properties": {
-    "payload": {
-      "type": "object",
-      "properties": {
-        "principal_id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "previous_status": {
-          "type": "string",
-          "enum": ["ACTIVE", "SUSPENDED"]
-        },
-        "new_status": {
-          "type": "string",
-          "enum": ["SUSPENDED", "DISABLED"]
-        },
-        "reason": {
-          "type": "string",
-          "description": "Machine‑readable reason code."
-        },
-        "actor": {
-          "type": "string",
-          "description": "Who performed the action (system or human ID)."
-        }
-      },
-      "required": ["principal_id", "previous_status", "new_status", "reason", "actor"]
+    "principal_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "previous_status": {
+      "type": "string",
+      "enum": ["ACTIVE", "SUSPENDED"]
+    },
+    "new_status": {
+      "type": "string",
+      "enum": ["SUSPENDED", "DISABLED"]
+    },
+    "reason": {
+      "type": "string",
+      "description": "Machine-readable reason code."
+    },
+    "actor": {
+      "type": "string",
+      "description": "Who performed the action (system or human ID)."
     }
   }
 }

@@ -1,0 +1,60 @@
+asyncapi: 3.1.0
+info:
+  title: Nabhold Baobab identity-events
+  version: 1.0.0
+  description: >
+    Canonical identity lifecycle events using the shared Baobab event
+    envelope, produced by baobab-iam's Keycloak realm and consumed by
+    downstream engines that need to react to identity/membership state
+    changes. No message broker exists yet anywhere in this ecosystem to
+    carry these (same position as contracts/erp/v1 and
+    contracts/supplier-onboarding/v1 today) — this contract exists so
+    producers and future consumers have a stable shape to build against
+    once one does.
+
+    This package currently covers 3 of the events ADR-0016 ("Identity
+    Lifecycle, Revocation and Deprovisioning") anticipates —
+    identity.created, identity.disabled, membership.revoked. The
+    remaining suggested events (identity.suspended, identity.reactivated,
+    entitlement.revoked, credential.compromised, session.revoked,
+    workload.revoked) are intentionally not defined here yet: each needs
+    its own payload-shape design against that ADR's revocation-propagation
+    and reason-code requirements, not a placeholder. See README.md.
+defaultContentType: application/json
+channels:
+  identityEvents:
+    address: nabhold.identity.events.v1
+    messages:
+      identityCreated: { $ref: "#/components/messages/IdentityCreated" }
+      identityDisabled: { $ref: "#/components/messages/IdentityDisabled" }
+      membershipRevoked: { $ref: "#/components/messages/MembershipRevoked" }
+operations:
+  publishIdentityEvents:
+    action: send
+    channel: { $ref: "#/channels/identityEvents" }
+components:
+  messages:
+    IdentityCreated:
+      name: com.nabhold.identity.created.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./identity-created.schema.json }
+    IdentityDisabled:
+      name: com.nabhold.identity.disabled.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./identity-disabled.schema.json }
+    MembershipRevoked:
+      name: com.nabhold.membership.revoked.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./membership-revoked.schema.json }
