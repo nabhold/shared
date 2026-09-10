@@ -33,3 +33,4 @@ contracts:
       - entitlement-revoked.schema.json
       - credential-compromised.schema.json
       - session-revoked.schema.json
+      - workload-revoked.schema.json

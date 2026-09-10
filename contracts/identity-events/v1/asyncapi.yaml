@@ -12,14 +12,12 @@ info:
     producers and future consumers have a stable shape to build against
     once one does.
 
-    This package currently covers 8 of the events ADR-0016 ("Identity
-    Lifecycle, Revocation and Deprovisioning") anticipates —
-    identity.created, identity.disabled, identity.suspended,
-    identity.reactivated, membership.revoked, entitlement.revoked,
-    credential.compromised, session.revoked. The remaining suggested
-    event (workload.revoked) is intentionally not defined here yet: it
-    needs its own payload-shape design against ADR-0016 §79-84's workload
-    lifecycle, not a placeholder. See README.md.
+    This package now covers all 9 events ADR-0016 ("Identity Lifecycle,
+    Revocation and Deprovisioning") anticipates — identity.created,
+    identity.disabled, identity.suspended, identity.reactivated,
+    membership.revoked, entitlement.revoked, credential.compromised,
+    session.revoked, workload.revoked. See README.md for each event's
+    design rationale.
 defaultContentType: application/json
 channels:
   identityEvents:
@@ -33,6 +31,7 @@ channels:
       entitlementRevoked: { $ref: "#/components/messages/EntitlementRevoked" }
       credentialCompromised: { $ref: "#/components/messages/CredentialCompromised" }
       sessionRevoked: { $ref: "#/components/messages/SessionRevoked" }
+      workloadRevoked: { $ref: "#/components/messages/WorkloadRevoked" }
 operations:
   publishIdentityEvents:
     action: send
@@ -103,3 +102,11 @@ components:
           - type: object
             properties:
               data: { $ref: ./session-revoked.schema.json }
+    WorkloadRevoked:
+      name: com.nabhold.workload.revoked.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./workload-revoked.schema.json }
