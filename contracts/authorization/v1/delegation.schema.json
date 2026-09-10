@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.nabhold.com/contracts/authorization/v1/delegation.schema.json",
+  "title": "Delegation",
+  "description": "Explicit subject/actor provenance for a delegated call: who a request is ultimately made on behalf of, versus which service actually executed it (ADR-0007 §13-18 'Delegated Calls', §108 'Human Delegation Architecture'; ADR-0008 §90-92 'Confused Deputy Protection'). A delegated call's AuthorizationContext (context.schema.json) SHOULD carry this so `principal_id` (the immediate caller's own identity) and this Delegation's `subject_id` (who the call is ultimately for) are never conflated -- that conflation is exactly the confused-deputy failure ADR-0008 §92 describes.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "subject_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "The principal this call is ultimately made on behalf of -- the original human or workload initiator (ADR-0007 §16 'subject')."
+    },
+    "subject_actor_type": {
+      "$ref": "../../identity/v1/actor-type.schema.json"
+    },
+    "actor_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "The workload identity that made this specific call (ADR-0007 §16 'actor'). Never the same principal as subject_id: a call an identity makes for itself is not a delegation and SHOULD NOT carry this object at all."
+    },
+    "audience": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The intended recipient service of this call (ADR-0007 §16 'audience')."
+    },
+    "delegation": {
+      "$ref": "#",
+      "description": "The delegation this actor was itself operating under, if actor_id's own call is itself a further hop in a longer chain (e.g. human -> Zuribeans -> Trade -> ERP, ADR-0007 §13). Absent for the first hop, where actor_id acted directly on the subject's authentication rather than on a prior delegation."
+    }
+  },
+  "required": ["subject_id", "subject_actor_type", "actor_id", "audience"]
+}

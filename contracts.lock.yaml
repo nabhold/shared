@@ -12,12 +12,16 @@ contracts:
       - membership.schema.json
       - external-reference.schema.json
       - session.schema.json
+      - authentication-assurance.schema.json
+      - assurance-requirement.schema.json
   - domain: authorization
     version: v1
     schemas:
       - context.schema.json
       - decision.schema.json
       - scope-registry.yaml
+      - delegation.schema.json
+      - reason-code-registry.yaml
   - domain: identity-events
     version: v1
     schemas:
