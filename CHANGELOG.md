@@ -45,6 +45,11 @@ Changes that have been merged but have not yet been included in a released versi
   (`contracts/identity-events/v1/identity-suspended.schema.json`,
   `identity-reactivated.schema.json`), 2 of the 6 lifecycle events ADR-0016
   §90 anticipated but `nabhold/shared` had not yet defined.
+- `entitlement.revoked`, `credential.compromised`, and `session.revoked`
+  events (`contracts/identity-events/v1/entitlement-revoked.schema.json`,
+  `credential-compromised.schema.json`, `session-revoked.schema.json`), 3
+  more of the 6 lifecycle events ADR-0016 §90 anticipated. Only
+  `workload.revoked` remains outstanding.
 
 ## Changed
 

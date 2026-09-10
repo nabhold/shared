@@ -12,14 +12,14 @@ info:
     producers and future consumers have a stable shape to build against
     once one does.
 
-    This package currently covers 5 of the events ADR-0016 ("Identity
+    This package currently covers 8 of the events ADR-0016 ("Identity
     Lifecycle, Revocation and Deprovisioning") anticipates —
     identity.created, identity.disabled, identity.suspended,
-    identity.reactivated, membership.revoked. The remaining suggested
-    events (entitlement.revoked, credential.compromised, session.revoked,
-    workload.revoked) are intentionally not defined here yet: each needs
-    its own payload-shape design against that ADR's revocation-propagation
-    and reason-code requirements, not a placeholder. See README.md.
+    identity.reactivated, membership.revoked, entitlement.revoked,
+    credential.compromised, session.revoked. The remaining suggested
+    event (workload.revoked) is intentionally not defined here yet: it
+    needs its own payload-shape design against ADR-0016 §79-84's workload
+    lifecycle, not a placeholder. See README.md.
 defaultContentType: application/json
 channels:
   identityEvents:
@@ -30,6 +30,9 @@ channels:
       identitySuspended: { $ref: "#/components/messages/IdentitySuspended" }
       identityReactivated: { $ref: "#/components/messages/IdentityReactivated" }
       membershipRevoked: { $ref: "#/components/messages/MembershipRevoked" }
+      entitlementRevoked: { $ref: "#/components/messages/EntitlementRevoked" }
+      credentialCompromised: { $ref: "#/components/messages/CredentialCompromised" }
+      sessionRevoked: { $ref: "#/components/messages/SessionRevoked" }
 operations:
   publishIdentityEvents:
     action: send
@@ -76,3 +79,27 @@ components:
           - type: object
             properties:
               data: { $ref: ./membership-revoked.schema.json }
+    EntitlementRevoked:
+      name: com.nabhold.entitlement.revoked.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./entitlement-revoked.schema.json }
+    CredentialCompromised:
+      name: com.nabhold.credential.compromised.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./credential-compromised.schema.json }
+    SessionRevoked:
+      name: com.nabhold.session.revoked.v1
+      payload:
+        allOf:
+          - $ref: ../../events/v1/envelope.schema.json
+          - type: object
+            properties:
+              data: { $ref: ./session-revoked.schema.json }

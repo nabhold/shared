@@ -30,3 +30,6 @@ contracts:
       - identity-suspended.schema.json
       - identity-reactivated.schema.json
       - membership-revoked.schema.json
+      - entitlement-revoked.schema.json
+      - credential-compromised.schema.json
+      - session-revoked.schema.json
