@@ -54,6 +54,13 @@ Changes that have been merged but have not yet been included in a released versi
   without treating legal entity and tenant as synonyms.
 - Access-token claims now require an explicit actor type and may identify an
   authorised party through `azp`.
+- `Session` (`contracts/identity/v1/session.schema.json`) now carries
+  authentication strength via a required `authentication_assurance`
+  (`AuthenticationAssurance`) object instead of its own `assurance_level`/
+  `authentication_methods` enums, so session strength and step-up decisions
+  (`AssuranceRequirement`) share one OIDC `acr`/`amr` vocabulary instead of
+  two. **Breaking**, though nothing in this repository or in `baobab-cp`/
+  `baobab-iam` consumed the removed fields yet.
 
 ## Deprecated
 
