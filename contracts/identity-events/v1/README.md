@@ -9,12 +9,21 @@ membership's state changing.
 
 - `asyncapi.yaml` carries the events this domain currently defines:
   identity created, identity disabled, identity suspended, identity
-  reactivated, and membership revoked.
+  reactivated, membership revoked, entitlement revoked, credential
+  compromised, and session revoked.
 - JSON Schemas (`identity-created.schema.json`, `identity-disabled.schema.json`,
   `identity-suspended.schema.json`, `identity-reactivated.schema.json`,
-  `membership-revoked.schema.json`) define each event's `data` payload.
-  Shared identity types (`ActorType`, etc.) live in `contracts/identity/v1`
-  and are referenced, not duplicated.
+  `membership-revoked.schema.json`, `entitlement-revoked.schema.json`,
+  `credential-compromised.schema.json`, `session-revoked.schema.json`)
+  define each event's `data` payload. Shared identity types (`ActorType`,
+  etc.) live in `contracts/identity/v1` and are referenced, not duplicated.
+
+`session-revoked.schema.json` deliberately does not embed
+`AuthenticationAssurance`: a revocation event records that a session ended
+and why, not how it was originally authenticated, and that assurance detail
+already lives on the `Session` resource itself
+(`contracts/identity/v1/session.schema.json`'s required
+`authentication_assurance`) rather than needing to be re-asserted here.
 
 `identity-disabled.schema.json`'s `new_status` was originally `["SUSPENDED",
 "DISABLED"]`, letting an ACTIVE-to-SUSPENDED transition be reported under
@@ -40,18 +49,16 @@ ADR-0016 §90 ("Event Examples") suggests `nabhold/shared` SHOULD define
 versioned events including `identity.suspended`, `identity.reactivated`,
 `entitlement.revoked`, `credential.compromised`, `session.revoked`, and
 `workload.revoked`, in addition to the `identity.disabled` and
-`membership.revoked` this package already had. `identity.suspended` and
-`identity.reactivated` are now defined (this pass); `entitlement.revoked`,
-`credential.compromised`, `session.revoked`, and `workload.revoked` remain
-outstanding. Each needs its own payload design against ADR-0016's
-revocation-propagation, staleness (§93–95), and audit (§139) requirements.
-The reason-code registry and `AuthenticationAssurance`/`Delegation`
-contracts ADR-0016/ADR-0017 also call for now exist
-(`contracts/authorization/v1/reason-code-registry.yaml`,
-`contracts/identity/v1/authentication-assurance.schema.json`,
-`contracts/authorization/v1/delegation.schema.json`) — `session.revoked`
-in particular should build on `AuthenticationAssurance` rather than
-inventing its own assurance vocabulary, the same reconciliation `Session`
-itself just went through. Fabricating shapes without per-event design work
-would just create a second, differently-wrong version of this same defect.
-Tracked as follow-up work, not represented as done here.
+`membership.revoked` this package already had. All but `workload.revoked`
+are now defined. `workload.revoked` remains outstanding: it needs its own
+payload design against ADR-0016 §79-84's workload lifecycle (a workload
+identity is not a human principal, so its subject shape differs from every
+event above), not a placeholder. Fabricating a shape without that design
+work would just create a second, differently-wrong version of the defect
+this package originally shipped with. Tracked as follow-up work, not
+represented as done here.
+
+`credential-compromised.schema.json`'s `credential_type` enumerates
+ADR-0015 §5's supported human authenticator categories (password, passkey,
+security-key WebAuthn, platform WebAuthn, TOTP, recovery code, federated
+enterprise IdP, social IdP) — grounded in that table, not invented.

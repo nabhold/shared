@@ -57,7 +57,7 @@ end
 
 # 2. identity-events payload schemas are standalone `data` schemas: composition
 #    with the envelope happens in asyncapi.yaml, not inside the payload schema.
-event_schema_files = %w[identity-created.schema.json identity-disabled.schema.json identity-suspended.schema.json identity-reactivated.schema.json membership-revoked.schema.json]
+event_schema_files = %w[identity-created.schema.json identity-disabled.schema.json identity-suspended.schema.json identity-reactivated.schema.json membership-revoked.schema.json entitlement-revoked.schema.json credential-compromised.schema.json session-revoked.schema.json]
 event_schema_files.each do |file|
   schema = load_json("contracts/identity-events/v1/#{file}")
   fail_contract("#{file} must not wrap the envelope internally (composition happens in asyncapi.yaml)") if schema.key?("allOf")

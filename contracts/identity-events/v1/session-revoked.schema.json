@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.nabhold.com/contracts/identity-events/v1/session-revoked.schema.json",
+  "title": "SessionRevokedEvent",
+  "description": "Emitted when an authentication session is explicitly revoked (ADR-0016 §27 'Authentication Session Lifecycle' -- CREATED/ACTIVE -> REVOKED is a distinct outcome from ordinary EXPIRED/TERMINATED endings, and §31 'Session Revocation Levels' -- current session, selected sessions, or all sessions). session_id references contracts/identity/v1/session.schema.json's id. This is the event envelope's `data` payload — see asyncapi.yaml for how it composes with contracts/events/v1/envelope.schema.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["session_id", "principal_id", "previous_status", "new_status", "reason", "actor"],
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "principal_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "previous_status": {
+      "type": "string",
+      "enum": ["ACTIVE"]
+    },
+    "new_status": {
+      "type": "string",
+      "enum": ["REVOKED"]
+    },
+    "reason": {
+      "type": "string",
+      "description": "Machine-readable reason code."
+    },
+    "actor": {
+      "type": "string",
+      "description": "Who performed the action (system or human ID)."
+    }
+  }
+}
