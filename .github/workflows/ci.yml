@@ -60,6 +60,7 @@ on:
       - "scripts/validate-governance-contracts.rb"
       - "scripts/validate-cross-engine-contracts.rb"
       - "scripts/validate-erp-contracts.rb"
+      - "scripts/validate-identity-events-contracts.rb"
   pull_request:
     paths:
       - ".github/workflows/**"
@@ -71,6 +72,7 @@ on:
       - "scripts/validate-governance-contracts.rb"
       - "scripts/validate-cross-engine-contracts.rb"
       - "scripts/validate-erp-contracts.rb"
+      - "scripts/validate-identity-events-contracts.rb"
   workflow_dispatch:
 
 permissions:
@@ -91,6 +93,8 @@ jobs:
         run: ruby scripts/validate-cross-engine-contracts.rb
       - name: Validate ERP boundary and system-of-record invariants
         run: ruby scripts/validate-erp-contracts.rb
+      - name: Validate identity-events envelope composition and examples
+        run: ruby scripts/validate-identity-events-contracts.rb
 
   action-pinning:
     name: Enforce action pinning (self-check)
