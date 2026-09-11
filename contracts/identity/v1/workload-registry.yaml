@@ -109,7 +109,7 @@ workloads:
     rotation_owner: nabhold/baobab-trade
     status: ACTIVE
 
-  thamani-backend-workload:
+  thamani-backend:
     repository: nabhold/thamani
     owner: nabhold/thamani
     runtime: "thamani backend service"
@@ -120,7 +120,7 @@ workloads:
     rotation_owner: nabhold/thamani
     status: ACTIVE
 
-  zuribeans-backend-workload:
+  zuribeans-backend:
     repository: nabhold/zuribeans
     owner: nabhold/zuribeans
     runtime: "zuribeans backend service"
