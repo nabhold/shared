@@ -78,3 +78,13 @@ scopes:
     audience: ["baobab-control-plane"]
     allowed_actors: ["human"]
     privileged: true
+
+  - name: "erp:integrate"
+    description: >-
+      Allows a workload to call baobab-erp's own application-service integration
+      boundary (context/mapping resolution, inbound events) rather than
+      baobab-control-plane. Distinct from context:resolve/mapping:resolve, whose
+      audience is baobab-control-plane -- a token scoped for the Control Plane SHALL
+      NOT also work against ERP (ADR-0007 §§24-25; ADR-0014 §111).
+    audience: ["baobab-erp"]
+    allowed_actors: ["workload"]

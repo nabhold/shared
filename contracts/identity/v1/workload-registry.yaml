@@ -81,8 +81,12 @@ workloads:
     owner: nabhold/baobab-erp
     runtime: "baobab-erp service"
     environment: production
-    allowed_audiences: ["baobab-control-plane"]
-    allowed_scopes: ["context:resolve"]
+    # Gate IAM-10 (ADR-0014 §111): added baobab-erp/erp:integrate so this
+    # workload's own iDempiere OSGi bundles (org.nabhold.baobab.erp.context/
+    # mapping) can authenticate to baobab-app's HTTP boundary, which
+    # previously trusted network location alone.
+    allowed_audiences: ["baobab-control-plane", "baobab-erp"]
+    allowed_scopes: ["context:resolve", "erp:integrate"]
     credential_type: client_credentials
     rotation_owner: nabhold/baobab-erp
     status: ACTIVE
